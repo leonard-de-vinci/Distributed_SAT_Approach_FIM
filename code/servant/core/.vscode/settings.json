@@ -1,0 +1,15 @@
+{
+    "C_Cpp.errorSquiggles": "Disabled",
+    "files.associations": {
+        "array": "cpp",
+        "iterator": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "vector": "cpp",
+        "ranges": "cpp",
+        "istream": "cpp",
+        "deque": "cpp",
+        "unordered_map": "cpp",
+        "ostream": "cpp"
+    }
+}
