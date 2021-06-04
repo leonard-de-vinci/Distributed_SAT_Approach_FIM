@@ -1,0 +1,12 @@
+FROM flexiboy/core
+
+WORKDIR /Users/Flexiboy/Desktop/Projects/Research/code/master
+
+COPY master ./
+
+WORKDIR /Users/Flexiboy/Desktop/Projects/Research/code/master/core
+
+RUN make clean\
+	&& make -k CXX=g++-10
+
+CMD /usr/bin/bash
