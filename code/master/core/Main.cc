@@ -209,7 +209,7 @@ int main(int argc, char** argv)
         // }
         
         Configuration config{
-            {"metadata.broker.list", "127.0.0.1:9092"}
+            {"metadata.broker.list", "localhost:9092"}
         };
 
         Producer producer(config);
