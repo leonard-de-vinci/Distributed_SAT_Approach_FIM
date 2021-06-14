@@ -17,6 +17,8 @@ RUN apt-get update -y\
 	&& apt-get install git -y\
 	&& apt-get install openssl -y\
 	&& apt-get install libssl-dev -y\
+	&& apt-get install openjdk-8-jre -y\
+	&& apt-get install gradle -y\
 	&& git clone https://github.com/mfontanini/cppkafka.git\
 	&& cd cppkafka\
 	&& mkdir build\
