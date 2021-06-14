@@ -1,5 +1,5 @@
 ---
-version: '2'
+version: '3'
 
 services: 
   zookeeper:
@@ -41,3 +41,14 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:9092'
       SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: WARN
+    
+  master:
+    image: flexiboy/master:latest
+    hostname: master
+    container_name: master
+    stdin_open: true
+    tty: true
+    depends_on: 
+      - zookeeper
+      - broker
+      - schema-registry

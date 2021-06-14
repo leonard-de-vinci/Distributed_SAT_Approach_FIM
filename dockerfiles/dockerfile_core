@@ -28,6 +28,4 @@ RUN apt-get update -y\
 	&& find /usr/ -name 'libcppkafka*'\
 	&& apt-get clean -y
 
-EXPOSE 9092
-
 CMD /usr/bin/bash
