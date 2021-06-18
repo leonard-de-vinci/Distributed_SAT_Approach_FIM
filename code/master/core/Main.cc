@@ -28,7 +28,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <librdkafka/rdkafka.h>
 #include <cppkafka/cppkafka.h>
-#include <boost/program_options.hpp>
+
+#include "common.h"
+#include "json.h"
 
 #include "../utils/System.h"
 #include "../utils/ParseUtils.h"
@@ -50,16 +52,105 @@ string convertToString(char* a){
     return s;
 }
 
-static void on_delivery(rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void *opaque){
-    if (rkmessage->err)
-        fprintf(stderr, "%% Message delivery failed: %s\n", rd_kafka_message_errstr(rkmessage));
+static void dr_cb (rd_kafka_t *rk,
+                   const rd_kafka_message_t *rkmessage, void *opaque) {
+        int *delivery_counterp = (int *)rkmessage->_private; /* V_OPAQUE */
+
+        if (rkmessage->err) {
+                fprintf(stderr, "Delivery failed for message %.*s: %s\n",
+                        (int)rkmessage->len, (const char *)rkmessage->payload,
+                        rd_kafka_err2str(rkmessage->err));
+        } else {
+                fprintf(stderr,
+                        "Message delivered to %s [%d] at offset %"PRId64
+                        " in %.2fms: %.*s\n",
+                        rd_kafka_topic_name(rkmessage->rkt),
+                        (int)rkmessage->partition,
+                        rkmessage->offset,
+                        (float)rd_kafka_message_latency(rkmessage) / 1000.0,
+                        (int)rkmessage->len, (const char *)rkmessage->payload);
+                (*delivery_counterp)++;
+        }
 }
 
-void init_rd_kafka(){
-  rd_kafka_conf_t *conf = rd_kafka_conf_new();
-  rd_kafka_conf_set_dr_msg_cb(conf, on_delivery);
+static int run_producer (const char *topic, int msgcnt, rd_kafka_conf_t *conf){
+        rd_kafka_t *rk;
+        char errstr[512];
+        int i;
+        int delivery_counter = 0;
 
-  // initialization omitted
+        /* Set up a delivery report callback that will be triggered
+         * from poll() or flush() for the final delivery status of
+         * each message produced. */
+        rd_kafka_conf_set_dr_msg_cb(conf, dr_cb);
+
+
+        /* Create producer.
+         * A successful call assumes ownership of \p conf. */
+        rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr));
+        if (!rk) {
+                fprintf(stderr, "Failed to create producer: %s\n", errstr);
+                rd_kafka_conf_destroy(conf);
+                return -1;
+        }
+
+        /* Create the topic. */
+        if (create_topic(rk, topic, 1) == -1) {
+                rd_kafka_destroy(rk);
+                return -1;
+        }
+
+        /* Produce messages */
+        for (i = 0 ; run && i < msgcnt ; i++) {
+                const char *user = "alice";
+                char json[64];
+                rd_kafka_resp_err_t err;
+
+                snprintf(json, sizeof(json),
+                         "{ \"count\": %d }", i+1);
+
+                fprintf(stderr, "Producing message #%d to %s: %s=%s\n",
+                        i, topic, user, json);
+
+                /* Asynchronous produce */
+                err = rd_kafka_producev(
+                        rk,
+                        RD_KAFKA_V_TOPIC(topic),
+                        RD_KAFKA_V_KEY(user, strlen(user)),
+                        RD_KAFKA_V_VALUE(json, strlen(json)),
+                        /* producev() will make a copy of the message
+                         * value (the key is always copied), so we
+                         * can reuse the same json buffer on the
+                         * next iteration. */
+                        RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
+                        RD_KAFKA_V_OPAQUE(&delivery_counter),
+                        RD_KAFKA_V_END);
+                if (err) {
+                        fprintf(stderr, "Produce failed: %s\n",
+                                rd_kafka_err2str(err));
+                        break;
+                }
+
+                /* Poll for delivery report callbacks to know the final
+                 * delivery status of previously produced messages. */
+                rd_kafka_poll(rk, 0);
+        }
+
+        if (run) {
+                /* Wait for outstanding messages to be delivered,
+                 * unless user is terminating the application. */
+                fprintf(stderr, "Waiting for %d more delivery results\n",
+                        msgcnt - delivery_counter);
+                rd_kafka_flush(rk, 15*1000);
+        }
+
+        /* Destroy the producer instance. */
+        rd_kafka_destroy(rk);
+
+        fprintf(stderr, "%d/%d messages delivered\n",
+                delivery_counter, msgcnt);
+
+        return 0;
 }
 
 // Main:
@@ -198,57 +289,15 @@ int main(int argc, char** argv)
 
         //Kafka
 
-        char hostname[128];
-        char errstr[512];
+        const char *topic = "test";
+        const char *config_file "$HOME/.confluent/librdkafka.config";
+        rd_kafka_conf_t *conf;
 
-        rd_kafka_conf_t *conf = rd_kafka_conf_new();
+        if (!(conf = read_config(config_file)))
+                return 1;
 
-        if (gethostname(hostname, sizeof(hostname))){
-            fprintf(stderr, "%% Failed to lookup hostname\n");
-            exit(1);
-        }
-
-        if (rd_kafka_conf_set(conf, "client.id", hostname, errstr, sizeof(errstr)) != RD_KAFKA_CONF_OK){
-            fprintf(stderr, "%% %s\n", errstr);
-            exit(1);
-        }
-
-        if (rd_kafka_conf_set(conf, "bootstrap.servers", "host1:9092,host2:9092", errstr, sizeof(errstr)) != RD_KAFKA_CONF_OK){
-            fprintf(stderr, "%% %s\n", errstr);
-            exit(1);
-        }
-
-        rd_kafka_topic_conf_t *topic_conf = rd_kafka_topic_conf_new();
-
-        if (rd_kafka_topic_conf_set(topic_conf, "acks", "all", errstr, sizeof(errstr)) != RD_KAFKA_CONF_OK){
-            fprintf(stderr, "%% %s\n", errstr);
-            exit(1);
-        }
-
-        /* Create Kafka producer handle */
-        rd_kafka_t *rk;
-        if (!(rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr)))) {
-            fprintf(stderr, "%% Failed to create new producer: %s\n", errstr);
-            exit(1);
-        }
-
-        rd_kafka_topic_t *rkt = rd_kafka_topic_new(rk, topic, topic_conf);
-
-        if (rd_kafka_produce(rkt, RD_KAFKA_PARTITION_UA, RD_KAFKA_MSG_F_COPY, payload, payload_len, key, key_len, NULL) == -1){
-            fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topic, rd_kafka_err2str(rd_kafka_errno2err(errno)));
-        }
-
-        
-        
-        // Configuration config{
-        //     {"metadata.broker.list", "localhost:29092"}
-        // };
-
-        // Producer producer(config);
-
-        // string message = "Hello there";
-        // producer.produce(MessageBuilder("mytopic").partition(0).payload(message));
-        // producer.flush();
+        if (run_producer(topic, 10, conf) == -1)
+                return 1;
 
         vec<Lit> dummy;
 		lbool ret;
