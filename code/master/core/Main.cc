@@ -290,7 +290,7 @@ int main(int argc, char** argv)
         //Kafka
 
         const char *topic = "test";
-        const char *config_file "$HOME/.confluent/librdkafka.config";
+        const char *config_file = "$HOME/.confluent/librdkafka.config";
         rd_kafka_conf_t *conf;
 
         if (!(conf = read_config(config_file)))
