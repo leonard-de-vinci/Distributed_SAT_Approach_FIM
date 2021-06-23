@@ -69,7 +69,7 @@ static int run_producer (const char *topic, int msgcnt, rd_kafka_conf_t *conf){
     /* Set up a delivery report callback that will be triggered
      * from poll() or flush() for the final delivery status of
      * each message produced. */
-    rd_kafka_conf_set_dr_msg_cb(conf, dr_cb);
+    rd_kafka_conf_set_dr_msg_cb(conf, dr_msg_cb);
 
 
     /* Create producer.
@@ -309,10 +309,10 @@ int main(int argc, char** argv)
 
         //
         create_topic(rk, topic1, 1);
-        for(int i = 0; run && i < items.size(); i++){
+        for(int i = 0; run && i < coop.items.size(); i++){
             rd_kafka_resp_err_t err;
             sprintf(buff, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
-            size_t len = strlen(buff)
+            size_t len = strlen(buff);
 
             /*
              * Send/Produce message.
@@ -324,7 +324,7 @@ int main(int argc, char** argv)
              * (dr_msg_cb) is used to signal back to the application
              * when the message has been delivered (or failed).
              */
-            retry:
+            do{
                 err = rd_kafka_producev(
                     /* Producer handle */
                     rk,
@@ -359,11 +359,11 @@ int main(int argc, char** argv)
                          * configuration property
                          * queue.buffering.max.messages */
                         rd_kafka_poll(rk, 1000/*block for max 1000ms*/);
-                        goto retry;
                     }
                 }else{
-                    fprintf(stderr, "%% Enqueued message (%zd bytes) for topic %s\n", len, topic);
+                    fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topic1);
                 }
+            }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
 
 
                 /* A producer application should continually serve
