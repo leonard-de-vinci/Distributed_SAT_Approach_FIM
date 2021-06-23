@@ -307,8 +307,12 @@ int main(int argc, char** argv)
             exit(1);
         }
 
-        //
         create_topic(rk, topic1, 1);
+        create_topic(rk, topic2, 1);
+        create_topic(rk, topic3, 1);
+        create_topic(rk, topic4, 1);
+        create_topic(rk, topic5, 1);
+
         for(int i = 0; run && i < coop.items.size(); i++){
             rd_kafka_resp_err_t err;
             sprintf(buff, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
@@ -379,6 +383,18 @@ int main(int argc, char** argv)
                  * you register). */
                 rd_kafka_poll(rk, 0/*non-blocking*/);
         }
+
+        fprintf(stderr, "%% Flushing final messages..\n");
+        rd_kafka_flush(rk, 10*1000 /* wait for max 10 seconds */);
+
+        /* If the output queue is still not empty there is an issue
+         * with producing messages to the clusters. */
+        if (rd_kafka_outq_len(rk) > 0)
+                fprintf(stderr, "%% %d message(s) were not delivered\n",
+                        rd_kafka_outq_len(rk));
+
+        /* Destroy the producer instance */
+        rd_kafka_destroy(rk);
 
         vec<Lit> dummy;
 		lbool ret;
