@@ -277,11 +277,14 @@ int main(int argc, char** argv)
 
         const char *topic1 = "items";
         const char *topic2 = "tab_transactions";
-        const char *topic3 = "appear _rans";
+        const char *topic3 = "appear_trans";
         const char *topic4 = "div_begining";
         const char *topic5 = "occ";
 
         const char *config_file = "librdkafka.config";
+
+        rd_kafka_resp_err_t err;
+        size_t len;
 
         // Sets the boostraps servers to the ones indicated in this configuration file
         if (!(conf = read_config(config_file)))
@@ -313,10 +316,11 @@ int main(int argc, char** argv)
         create_topic(rk, topic4, 1);
         create_topic(rk, topic5, 1);
 
+        //Items
+
         for(int i = 0; run && i < coop.items.size(); i++){
-            rd_kafka_resp_err_t err;
             sprintf(buff, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
-            size_t len = strlen(buff);
+            len = strlen(buff);
 
             /*
              * Send/Produce message.
@@ -364,24 +368,119 @@ int main(int argc, char** argv)
                          * queue.buffering.max.messages */
                         rd_kafka_poll(rk, 1000/*block for max 1000ms*/);
                     }
-                }else{
+                }
+                else{
                     fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topic1);
                 }
             }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
 
 
-                /* A producer application should continually serve
-                 * the delivery report queue by calling rd_kafka_poll()
-                 * at frequent intervals.
-                 * Either put the poll call in your main loop, or in a
-                 * dedicated thread, or call it after every
-                 * rd_kafka_produce() call.
-                 * Just make sure that rd_kafka_poll() is still called
-                 * during periods where you are not producing any messages
-                 * to make sure previously produced messages have their
-                 * delivery report callback served (and any other callbacks
-                 * you register). */
-                rd_kafka_poll(rk, 0/*non-blocking*/);
+            /* A producer application should continually serve
+             * the delivery report queue by calling rd_kafka_poll()
+             * at frequent intervals.
+             * Either put the poll call in your main loop, or in a
+             * dedicated thread, or call it after every
+             * rd_kafka_produce() call.
+             * Just make sure that rd_kafka_poll() is still called
+             * during periods where you are not producing any messages
+             * to make sure previously produced messages have their
+             * delivery report callback served (and any other callbacks
+             * you register). */
+            rd_kafka_poll(rk, 0/*non-blocking*/);
+        }
+
+        // Tab transactions
+
+        for(int i = 0; run && i < coop.tabTransactions.size(); i++){
+            // sprintf(buff, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
+            len = strlen(buff);
+
+            do{
+                err = rd_kafka_producev(rk, RD_KAFKA_V_TOPIC(topic2), RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(buff, len), RD_KAFKA_V_OPAQUE(NULL), RD_KAFKA_V_END);
+
+                if (err){
+                    fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topic2, rd_kafka_err2str(err));
+
+                    if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+                        rd_kafka_poll(rk, 1000);
+                    }
+                }
+                else{
+                    fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topic2);
+                }
+            }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
+
+            rd_kafka_poll(rk, 0/*non-blocking*/);
+        }
+
+        // AppearTrans
+
+        for(int i = 0; run && i < coop.appearTrans.size(); i++){
+            // sprintf(buff, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
+            len = strlen(buff);
+
+            do{
+                err = rd_kafka_producev(rk, RD_KAFKA_V_TOPIC(topic3), RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(buff, len), RD_KAFKA_V_OPAQUE(NULL), RD_KAFKA_V_END);
+
+                if (err){
+                    fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topic3, rd_kafka_err2str(err));
+
+                    if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+                        rd_kafka_poll(rk, 1000);
+                    }
+                }
+                else{
+                    fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topic3);
+                }
+            }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
+
+            rd_kafka_poll(rk, 0/*non-blocking*/);
+        }
+
+        // Div begining
+
+        sprintf(buff, "%d", coop.div_begining);
+        len = strlen(buff);
+
+        do{
+            err = rd_kafka_producev(rk, RD_KAFKA_V_TOPIC(topic4), RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(buff, len), RD_KAFKA_V_OPAQUE(NULL), RD_KAFKA_V_END);
+
+            if (err){
+                fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topic4, rd_kafka_err2str(err));
+
+                if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+                    rd_kafka_poll(rk, 1000);
+                }
+            }
+            else{
+                fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topic4);
+            }
+        }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
+
+        rd_kafka_poll(rk, 0/*non-blocking*/);
+
+        // Occ
+
+        for(int i = 0; run && i < coop.occ.size(); i++){
+            sprintf(buff, "%d", coop.occ[i]);
+            len = strlen(buff);
+
+            do{
+                err = rd_kafka_producev(rk, RD_KAFKA_V_TOPIC(topic5), RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(buff, len), RD_KAFKA_V_OPAQUE(NULL), RD_KAFKA_V_END);
+
+                if (err){
+                    fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topic5, rd_kafka_err2str(err));
+
+                    if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
+                        rd_kafka_poll(rk, 1000);
+                    }
+                }
+                else{
+                    fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topic5);
+                }
+            }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
+
+            rd_kafka_poll(rk, 0/*non-blocking*/);
         }
 
         fprintf(stderr, "%% Flushing final messages..\n");
