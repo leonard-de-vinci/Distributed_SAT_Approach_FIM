@@ -46,7 +46,7 @@ COPTIMIZE ?= -O3
 CFLAGS    += -I$(MROOT) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS
 LFLAGS    += -lz
 
-KAFKA = -I/usr/local/include -L/usr/local/lib -lrdkafka -lm -lcppkafka
+KAFKA = -I/usr/local/include -L/usr/local/lib -lrdkafka -lm
 
 .PHONY : s p d r rs clean 
 
