@@ -2,7 +2,7 @@ FROM flexiboy/core
 
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 
-ADD ./code/master ./code/master
+ADD ./code/servant ./code/servant
 ADD ./data ./data
 
 RUN cd code/master/core \
