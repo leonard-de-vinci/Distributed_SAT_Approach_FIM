@@ -25,12 +25,13 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <iostream>
 #include <ostream>
 #include <stdio.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <string>
 
-#define PORT 8080
+#include <librdkafka/rdkafka.h>
+
+#include "common.h"
+#include "json.h"
 
 #include "../utils/System.h"
 #include "../utils/ParseUtils.h"
@@ -40,6 +41,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 
 using namespace Minisat;
+using namespace std;
 
 
 // Main:
@@ -79,156 +81,6 @@ int main(int argc, char** argv)
 	  		coop.solvers[t].verbosity = verb;
 		}
 
-		// // Socket initialization
-		// int sock = 0;
-		// struct sockaddr_in serv_addr;
-		// char *msg = "ok";
-		// char buffer[1024] = {0};
-
-		// if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-		// 	printf("\nSocket creation error\n");
-		// 	return -1;
-		// }
-
-		// serv_addr.sin_addr.s_addr = INADDR_ANY;
-		// serv_addr.sin_family = AF_INET;
-		// serv_addr.sin_port = htons(PORT);
-
-		// if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0){
-		// 	printf("\nInvalid address or address not supported\n");
-		// 	return -1;
-		// }
-
-		// if(connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
-		// 	printf("\nConnection failed\n");
-		// 	return -1;
-		// }
-		// else{
-		// 	printf("Connected to server\n");
-		// }
-
-		// int itemssz, tabTranssz, tabTransisz, appearTranssz, appearTransisz, occsz;
-		// vec<Lit> items;
-		// vec<Lit> trans;
-		// int ind = 0;
-		// int var_ = 0;
-		// bool status = true;
-		// char buff[20] = {0};
-		// int j = 0;
-
-		// // Items
-		// recv(sock, buffer, 1024, 0);
-		// itemssz = atoi(buffer);
-		
-		// if(itemssz != NULL){
-		// 	send(sock, msg, strlen(msg), 0);
-		// 	while(status){
-		// 		recv(sock, buffer, 1024, 0);
-		// 		printf("%s\n\n", buffer);
-		// 		for(int i = 0; i < sizeof(buffer); i++){
-		// 			if(buffer[i] == '?'){
-		// 				status = false;
-		// 				break;
-		// 			}
-		// 			else if(buffer[i] == ','){
-		// 				//printf("(%s)\n", buff);
-		// 				items.push(mkLit(atoi(buff), false));
-		// 				for(int k = 0; k < sizeof(buff); k++){
-		// 					if(buff[k] != NULL){
-		// 						buff[k] = NULL;
-		// 					}
-		// 				}
-		// 				j = 0;
-		// 			}
-		// 			else if(buffer[i] != NULL){
-		// 				// Convertir en string ici
-		// 				buff[j] = buffer[i];
-		// 				j++;
-		// 				// buff.append(1, buffer[i]); // trouver une autre manière de concaténer
-		// 			}
-		// 		}
-		// 	}
-		// 	// for(int i = 0; i < itemssz; i++){
-		// 	// 	recv(sock, buffer, 1024, 0);
-		// 	// 	items.push(mkLit(atoi(buffer), false));
-		// 	// }
-		// 	printf("%d\n", items.size());
-		// }
-
-		// printf("test1\n");
-
-		// send(sock, msg, strlen(msg), 0);
-
-		// // Tab Trans
-		// recv(sock, buffer, 1024, 0);
-		// tabTranssz = atoi(buffer);
-
-		// if(tabTranssz != NULL){
-		// 	send(sock, msg, strlen(msg), 0);
-		// 	for(int i = 0; i < tabTranssz; i++){
-		// 		recv(sock, buffer, 1024, 0);
-		// 		tabTransisz = atoi(buffer);
-			
-		// 		if(tabTransisz != NULL){
-		// 			send(sock, msg, strlen(msg), 0);
-		// 			for(int j = 0; j < tabTransisz; j++){
-		// 				recv(sock, buffer, 1024, 0);
-		// 				trans.push(mkLit(atoi(buffer), false));
-		// 			}
-		// 		}
-		// 		var_ += trans.size();
-		// 		for(int t = 0; t < coop.nbThreads; t++){
-	  	// 			while (var_ >= coop.solvers[t].nVars()) coop.solvers[t].newVar();
-		// 		}
-		// 		coop.addTransactions(trans);
-		// 		trans.clear();
-		// 	}
-		// }
-
-		// send(sock, msg, strlen(msg), 0);
-
-		// // AppearTrans
-		// recv(sock, buffer, 1024, 0);
-		// appearTranssz = atoi(buffer);
-
-		// if(appearTranssz != NULL){
-		// 	send(sock, msg, strlen(msg), 0);
-		// 	for(int i = 0; i < appearTranssz; i++){
-		// 		recv(sock, buffer, 1024, 0);
-		// 		appearTransisz = atoi(buffer);
-		// 		if(appearTransisz != NULL){
-		// 			send(sock, msg, strlen(msg), 0);
-		// 			coop.appearTrans.push();
-		// 			ind = coop.appearTrans.size()-1;
-		// 			for(int j = 0; j < appearTransisz; j++){
-		// 				recv(sock, buffer, 1024, 0);
-		// 				coop.appearTrans[ind].push(atoi(buffer));
-		// 			}
-		// 		}
-		// 	}
-		// }
-
-		// send(sock, msg, strlen(msg), 0);
-
-		// // Div_begining
-		// recv(sock, buffer, 1024, 0);
-		// coop.div_begining = atoi(buffer);
-		// send(sock, msg, strlen(msg), 0);
-
-		// // Occ
-		// recv(sock, buffer, 1024, 0);
-		// occsz = atoi(buffer);
-
-		// if(occsz != NULL){
-		// 	send(sock, msg, strlen(msg), 0);
-		// 	for(int i = 0; i < occsz; i++){
-		// 		recv(sock, buffer, 1024, 0);
-		// 		coop.occ.push(atoi(buffer));
-		// 	}
-		// }
-
-		// send(sock, msg, strlen(msg), 0);
-
 		FILE* file = NULL;
 		file = fopen("models.txt", "w");
 		fprintf(file, "Results - Models\n\n");
@@ -264,6 +116,42 @@ int main(int argc, char** argv)
         
     	if (argc == 1)
         	printf("Reading from standard input... Use '--help' for help.\n");
+
+		// Kafka
+		rd_kafka_t *rk; //consumer instance handle
+        rd_kafka_conf_t *conf; //temporary configuration object
+		rd_kafka_resp_err_t err; //librdkafka API error code
+        char errstr[512]; //librdkafka API error reporting buffer
+
+        const char *groupid;     /* Argument: Consumer group id */
+        char **topics;           /* Argument: list of topics to subscribe to */
+        int topic_cnt;           /* Number of topics to subscribe to */
+        rd_kafka_topic_partition_list_t *subscription; /* Subscribed topics */
+
+		const char *config_file = "librdkafka.config";
+
+		// Sets the boostraps servers to the ones indicated in this configuration file
+        if (!(conf = read_config(config_file)))
+                return 1;
+		
+		/*
+         * Create consumer instance.
+         *
+         * NOTE: rd_kafka_new() takes ownership of the conf object
+         *       and the application must not reference it again after
+         *       this call.
+         */
+        rk = rd_kafka_new(RD_KAFKA_CONSUMER, conf, errstr, sizeof(errstr));
+        if (!rk) {
+                fprintf(stderr,
+                        "%% Failed to create new consumer: %s\n", errstr);
+                return 1;
+        }
+
+		conf = NULL;
+
+
+		// Standard input file reading
         
 		std::string buff = "";
 		int status = 0;
@@ -354,10 +242,6 @@ int main(int argc, char** argv)
 				coop.solvers[t].VecItems.push(var(items[i]));
 			coop.solvers[t].nbTrans = coop.tabTransactions.size();
 		}
-
-//    	gzFile in = (argc == 1) ? gzdopen(0, "rb") : gzopen(argv[1], "rb");
-//    	if (in == NULL)
-//        	printf("ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1]), exit(1);
 	
 		if (coop.solvers[0].verbosity > 0){
         	printf(" ===============================================[ Problem Statistics ]==================================================\n");
@@ -369,9 +253,7 @@ int main(int argc, char** argv)
 		printf("<> nbThreads   : %d \n\n", nbThreads);
 	
 		omp_set_num_threads(nbThreads);
-		// parse_DIMACS(in, &coop);
 		
-//		gzclose(in);
      	FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
         
         if (coop.solvers[0].verbosity > 0){
@@ -384,53 +266,50 @@ int main(int argc, char** argv)
             printf("|                                                                                                                       |\n"); }
 
 
-	if (!coop.solvers[0].simplify()){
-	  if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
-	  if (coop.solvers[0].verbosity > 0){
-	    printf("========================================================================================================================\n");
-	    printf("Solved by unit propagation\n");
-	    printf("\n"); }
-	  printf("UNSATISFIABLE\n");
-	  exit(20);
-       }
+		if (!coop.solvers[0].simplify()){
+	  		if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
+	  		if (coop.solvers[0].verbosity > 0){
+	    		printf("========================================================================================================================\n");
+	    		printf("Solved by unit propagation\n");
+	    		printf("\n"); }
+	  		printf("UNSATISFIABLE\n");
+	  		exit(20);
+       	}
         
         vec<Lit> dummy;
-		
+		lbool ret;
+		lbool result;
 	
-		
-	lbool ret;
-	lbool result;
-	
-	// launch threads in Parallel 	
+		// launch threads in Parallel 	
 
-#pragma omp parallel
+	#pragma omp parallel
 	{
-	  int t = omp_get_thread_num();
-	  coop.start = true;
-	  coop.solvers[t].EncodeDB(&coop);
-	  ret = coop.solvers[t].solve_(&coop);
+	  	int t = omp_get_thread_num();
+	  	coop.start = true;
+	  	coop.solvers[t].EncodeDB(&coop);
+	  	ret = coop.solvers[t].solve_(&coop);
 	}
 	
 	
-	int cpt = 0;
-	// each worker print its models
-	printf("-----------------------------------------------\n");
-	printf("thread | nb models          | nb conflicts    |\n");
-	printf("-----------------------------------------------\n");
+		int cpt = 0;
+		// each worker print its models
+		printf("-----------------------------------------------\n");
+		printf("thread | nb models          | nb conflicts    |\n");
+		printf("-----------------------------------------------\n");
 
-	int nbcls = 0;
-	for(int t = 0; t < coop.nThreads(); t++){
-	  cpt +=  coop.solvers[t].nbModels;
-	  nbcls += coop.solvers[t].nbClauses;
-	  printf("  %2d   |   %15d  | %d \n", t, coop.solvers[t].nbModels, (int)coop.solvers[t].conflicts);
-	  //printf("-----------------------------------------------\n");
-	  //coop.solvers[t].AfficheModel();
-	}
-	printf("-----------------------------------------------\n");
-	printf("total  | %15d    | \n", cpt);
-	printf("-----------------------------------------------\n");
-	
-	printf("#total Clauses  : %15d     \n", nbcls);
+		int nbcls = 0;
+		for(int t = 0; t < coop.nThreads(); t++){
+		cpt +=  coop.solvers[t].nbModels;
+		nbcls += coop.solvers[t].nbClauses;
+		printf("  %2d   |   %15d  | %d \n", t, coop.solvers[t].nbModels, (int)coop.solvers[t].conflicts);
+		//printf("-----------------------------------------------\n");
+		//coop.solvers[t].AfficheModel();
+		}
+		printf("-----------------------------------------------\n");
+		printf("total  | %15d    | \n", cpt);
+		printf("-----------------------------------------------\n");
+		
+		printf("#total Clauses  : %15d     \n", nbcls);
        
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
