@@ -59,6 +59,11 @@ static void dr_msg_cb (rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void
         /* The rkmessage is destroyed automatically by librdkafka */
 }
 
+static void stop (int sig) {
+        run = 0;
+        fclose(stdin); /* abort fgets() */
+}
+
 // Main:
 
 
@@ -233,6 +238,9 @@ int main(int argc, char** argv)
             fprintf(stderr, "%% Failed to create new producer: %s\n", errstr);
             exit(1);
         }
+
+        /* Signal handler for clean shutdown */
+        signal(SIGINT, stop);
 
         create_topic(rk, topicItems, 1);
         create_topic(rk, topicTabTransactions, 1);
@@ -429,8 +437,7 @@ int main(int argc, char** argv)
         /* If the output queue is still not empty there is an issue
          * with producing messages to the clusters. */
         if (rd_kafka_outq_len(rk) > 0)
-                fprintf(stderr, "%% %d message(s) were not delivered\n",
-                        rd_kafka_outq_len(rk));
+            fprintf(stderr, "%% %d message(s) were not delivered\n", rd_kafka_outq_len(rk));
 
         /* Destroy the producer instance */
         rd_kafka_destroy(rk);
