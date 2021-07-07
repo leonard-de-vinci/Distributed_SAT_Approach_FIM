@@ -1,5 +1,5 @@
 ---
-version: '3'
+version: '3.8'
 
 services: 
   zookeeper:
@@ -41,3 +41,29 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:9092'
       SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: WARN
+
+  mongoDB:
+    image: mongo
+    container_name: mongodb
+    environment: 
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    volumes: 
+      - ~/Desktop/Courses/Distributed_SAT_Approach/data/db
+    ports: 
+      - 27017:27017
+    restart: always
+  
+  mongoAdmin:
+    image: mongo-express
+    container_name: mongoAdmin
+    environment: 
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    ports: 
+      - 8081:8081
+    restart: always
