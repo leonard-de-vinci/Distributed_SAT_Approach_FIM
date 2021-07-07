@@ -11,7 +11,7 @@ RUN cd code/master/core \
 	&& touch librdkafka.config\
 	&& echo "# Kafka" > librdkafka.config\
 	&& echo "bootstrap.servers=localhost:9092" >> librdkafka.config\
-	&& echo "group.id=" >> librdkafka.config\
+	&& echo "group.id=solvers" >> librdkafka.config\
 	&& echo "auto.offset.reset=earliest" >> librdkafka.config
 
 CMD /usr/bin/bash
