@@ -27,6 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <iostream>
 
 #include <librdkafka/rdkafka.h>
+#include <mongoc/mongoc.h>
 
 #include "common.h"
 #include "json.h"
@@ -196,7 +197,26 @@ int main(int argc, char** argv)
             printf("|                                                                                                                       |\n"); 
         }
 
+        //Mongo
+        const char *mongo_config_file = "mongo.config";
+        const char *uri_string;
+        mongoc_uri_t *uri;
+        mongoc_client_t *client;
+        mongoc_database_t *database;
+        mongoc_collection_t *collection;
+        bson_t *command, reply, *insert;
+        bson_error_t error;
+        char *str;
+        bool retval;
 
+        mongoc_init();
+
+        client = mongoc_client_new("mongodb+srv://<username>:<password>@<cluster-url>/test?retryWrites=true&w=majority");
+        database = mongoc_client_get_database(client, "test");
+
+        mongoc_database_destroy(database);
+        mongoc_client_destroy(client);
+        mongoc_cleanup();
 
         //Kafka
         rd_kafka_t *rk; //producer instance handle
@@ -204,12 +224,7 @@ int main(int argc, char** argv)
         char errstr[512]; //librdkafka API error reporting buffer
         char buff[512]; //Message value temporary buffer
 
-        const char *topicItems = "items";
-        const char *topicTabTransactions = "tab_transactions";
-        const char *topicAppearTrans = "appear_trans";
-        const char *topicDivBegining = "div_begining";
-        const char *topicOcc = "occ";
-
+        const char *topic = "guiding_path";
         const char *config_file = "librdkafka.config";
 
         rd_kafka_resp_err_t err;
@@ -242,16 +257,12 @@ int main(int argc, char** argv)
         /* Signal handler for clean shutdown */
         signal(SIGINT, stop);
 
-        create_topic(rk, topicItems, 1);
-        create_topic(rk, topicTabTransactions, 1);
-        create_topic(rk, topicAppearTrans, 1);
-        create_topic(rk, topicDivBegining, 1);
-        create_topic(rk, topicOcc, 1);
+        create_topic(rk, topic, 1);
 
-        //Items
+        //Guiding_Path
 
-        for(int i = 0; run && i < coop.items.size(); i++){
-            sprintf(buff, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
+        for(int i = coop.div_begining; run && i < coop.items.size(); i++){
+            sprintf(buff, "%d", i);
             len = strlen(buff);
 
             /*
@@ -269,7 +280,7 @@ int main(int argc, char** argv)
                     /* Producer handle */
                     rk,
                     /* Topic name */
-                    RD_KAFKA_V_TOPIC(topicItems),
+                    RD_KAFKA_V_TOPIC(topic),
                     /* Make a copy of the payload. */
                     RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
                     /* Message value and length */
@@ -285,7 +296,7 @@ int main(int argc, char** argv)
                     /*
                      * Failed to *enqueue* message for producing.
                      */
-                    fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topicItems, rd_kafka_err2str(err));
+                    fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topic, rd_kafka_err2str(err));
 
                     if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
                         /* If the internal queue is full, wait for
@@ -318,116 +329,6 @@ int main(int argc, char** argv)
              * to make sure previously produced messages have their
              * delivery report callback served (and any other callbacks
              * you register). */
-            rd_kafka_poll(rk, 0/*non-blocking*/);
-        }
-
-        // Tab transactions
-
-        for(int i = 0; run && i < coop.tabTransactions.size(); i++){
-            for(int j = 0; j < coop.tabTransactions[i].size(); j++){
-                if (j == coop.tabTransactions[i].size() - 1){
-                    sprintf(buff, "%s%d;", sign(coop.tabTransactions[i][j]) ? "-" :  "", var(coop.tabTransactions[i][j]));
-                }
-                else{
-                    sprintf(buff, "%s%d", sign(coop.tabTransactions[i][j]) ? "-" :  "", var(coop.tabTransactions[i][j]));
-                }
-
-                len = strlen(buff);
-
-                do{
-                    err = rd_kafka_producev(rk, RD_KAFKA_V_TOPIC(topicTabTransactions), RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(buff, len), RD_KAFKA_V_OPAQUE(NULL), RD_KAFKA_V_END);
-
-                    if (err){
-                        fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topicTabTransactions, rd_kafka_err2str(err));
-
-                        if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
-                            rd_kafka_poll(rk, 1000);
-                        }
-                    }
-                    else{
-                        fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topicTabTransactions);
-                    }
-                }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
-
-                rd_kafka_poll(rk, 0/*non-blocking*/);
-            }
-        }
-
-        // AppearTrans
-
-        for(int i = 0; run && i < coop.appearTrans.size(); i++){
-            for(int j = 0; j < coop.appearTrans[i].size(); j++){
-                if(j == coop.appearTrans[i].size() - 1){
-                    sprintf(buff, "%d;", coop.appearTrans[i][j]);
-                }
-                else{
-                    sprintf(buff, "%d", coop.appearTrans[i][j]);
-                }
-
-                len = strlen(buff);
-
-                do{
-                    err = rd_kafka_producev(rk, RD_KAFKA_V_TOPIC(topicAppearTrans), RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(buff, len), RD_KAFKA_V_OPAQUE(NULL), RD_KAFKA_V_END);
-
-                    if (err){
-                        fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topicAppearTrans, rd_kafka_err2str(err));
-
-                        if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
-                            rd_kafka_poll(rk, 1000);
-                        }
-                    }
-                    else{
-                        fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topicAppearTrans);
-                    }
-                }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
-
-                rd_kafka_poll(rk, 0/*non-blocking*/);
-            }
-        }
-
-        // Div begining
-
-        sprintf(buff, "%d", coop.div_begining);
-        len = strlen(buff);
-
-        do{
-            err = rd_kafka_producev(rk, RD_KAFKA_V_TOPIC(topicDivBegining), RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(buff, len), RD_KAFKA_V_OPAQUE(NULL), RD_KAFKA_V_END);
-
-            if (err){
-                fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topicDivBegining, rd_kafka_err2str(err));
-
-                if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
-                    rd_kafka_poll(rk, 1000);
-                }
-            }
-            else{
-                fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topicDivBegining);
-            }
-        }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
-
-        rd_kafka_poll(rk, 0/*non-blocking*/);
-
-        // Occ
-
-        for(int i = 0; run && i < coop.occ.size(); i++){
-            sprintf(buff, "%d", coop.occ[i]);
-            len = strlen(buff);
-
-            do{
-                err = rd_kafka_producev(rk, RD_KAFKA_V_TOPIC(topicOcc), RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(buff, len), RD_KAFKA_V_OPAQUE(NULL), RD_KAFKA_V_END);
-
-                if (err){
-                    fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topicOcc, rd_kafka_err2str(err));
-
-                    if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
-                        rd_kafka_poll(rk, 1000);
-                    }
-                }
-                else{
-                    fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topicOcc);
-                }
-            }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
-
             rd_kafka_poll(rk, 0/*non-blocking*/);
         }
 
