@@ -199,7 +199,10 @@ int main(int argc, char** argv)
 
         //Mongo
         const char *mongo_config_file = "mongo.config";
-        const char *uri_string;
+        int test = 0;
+        char *uri_string;
+        char *username;
+        char *password;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
         mongoc_database_t *database;
@@ -209,14 +212,39 @@ int main(int argc, char** argv)
         char *str;
         bool retval;
 
+        if (mongo_config(mongo_config_file, &uri_string, &username, &password) != 0){
+            printf("Failed mongo config");
+            return 1;
+        }
+
+        printf("username: %s\n", username);
+        printf("password: %s\n", password);
+        printf("uri: %s\n", uri_string);
+
         mongoc_init();
 
-        client = mongoc_client_new("mongodb+srv://<username>:<password>@<cluster-url>/test?retryWrites=true&w=majority");
-        database = mongoc_client_get_database(client, "test");
+        uri = mongoc_uri_new_with_error(uri_string, &error);
+        if (!uri){
+            fprintf (stderr, "failed to parse URI: %s\nerror message: %s\n", uri_string, error.message);
+            return EXIT_FAILURE;
+        }
+
+        client = mongoc_client_new_from_uri(uri);
+        if (!client){
+            return EXIT_FAILURE;
+        }
+
+        mongoc_client_set_appname (client, "database-push");
+
+        database = mongoc_client_get_database(client, "data");
+        collection = mongoc_client_get_collection (client, "data", "dataset");
+        
 
         mongoc_database_destroy(database);
         mongoc_client_destroy(client);
         mongoc_cleanup();
+
+        return 1;
 
         //Kafka
         rd_kafka_t *rk; //producer instance handle
@@ -313,7 +341,7 @@ int main(int argc, char** argv)
                     }
                 }
                 else{
-                    fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topicItems);
+                    fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topic);
                 }
             }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
 

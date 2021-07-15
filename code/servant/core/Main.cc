@@ -135,8 +135,8 @@ int main(int argc, char** argv)
 		rd_kafka_resp_err_t err; //librdkafka API error code
         char errstr[512]; //librdkafka API error reporting buffer
 
-        char **topics = ["items", "tab_transactions", "appear_trans", "div_begining", "occ"];           /* Argument: list of topics to subscribe to */
-        int topic_cnt = 5;           /* Number of topics to subscribe to */
+        char **topics = ["guiding_path"];           /* Argument: list of topics to subscribe to */
+        int topic_cnt = 1;           /* Number of topics to subscribe to */
         rd_kafka_topic_partition_list_t *subscription; /* Subscribed topics */
 
 		const char *config_file = "librdkafka.config";
