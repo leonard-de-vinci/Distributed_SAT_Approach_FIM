@@ -142,53 +142,6 @@ int main(int argc, char** argv)
 
 
 	    parse_DIMACS(in, &coop);
-
-        string items = "";
-        string tabTransactions = "";
-        string appearTrans = "";
-        string div_begining = "";
-        string occ = "";
-        char temp[20] = {0};
-
-        // Items
-        for(int i = 0; i < coop.items.size(); i++){
-            sprintf(temp, "%s%d,", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
-            items += convertToString(temp);
-        }
-
-        // Tab Transactions
-        for(int i  = 0; i < coop.tabTransactions.size(); i++){
-            sprintf(temp, "[");
-            tabTransactions += convertToString(temp);
-            for(int j = 0; j < coop.tabTransactions[i].size(); j++){
-                sprintf(temp, "%s%d,", sign(coop.tabTransactions[i][j]) ? "-" :  "", var(coop.tabTransactions[i][j]));
-                tabTransactions += convertToString(temp);
-            }
-            sprintf(temp, "],");
-            tabTransactions += convertToString(temp);
-        }
-
-        // Appear Trans
-        for(int i = 0; i < coop.appearTrans.size(); i++){
-            sprintf(temp, "[");
-            appearTrans += convertToString(temp);
-            for(int j = 0; j < coop.appearTrans[i].size(); j++){
-                sprintf(temp, "%d,", coop.appearTrans[i][j]);
-                appearTrans += convertToString(temp);
-            }
-            sprintf(temp, "],");
-            appearTrans += convertToString(temp);
-        }
-
-        // Div begining
-        sprintf(temp, "%d", coop.div_begining);
-        div_begining += convertToString(temp);
-
-        // Occ
-        for(int i = 0; i < coop.occ.size(); i++){
-            sprintf(temp, "%d,", coop.occ[i]);
-            occ += convertToString(temp);
-        }
 		
 		gzclose(in);
         
@@ -200,30 +153,27 @@ int main(int argc, char** argv)
 
         //Mongo
         const char *mongo_config_file = "mongo.config";
+        const char *key;
         char *uri_string;
         char *username;
         char *password;
+        char *str;
+        char temp[16] = {0};
+        size_t keylen;
+        uint32_t count = 0;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
         mongoc_database_t *database;
         mongoc_collection_t *collection;
-        bson_t *command, reply, *insert;
         bson_t *document;
         bson_t child;
         bson_error_t error;
-        char *str;
-        bool retval;
-        const char *key;
-        size_t keylen;
+        bson_oid_t oid;
 
         if (mongo_config(mongo_config_file, &uri_string, &username, &password) != 0){
             printf("Failed mongo config");
             return 1;
         }
-
-        printf("username: %s\n", username);
-        printf("password: %s\n", password);
-        printf("uri: %s\n", uri_string);
 
         mongoc_init();
 
@@ -244,10 +194,12 @@ int main(int argc, char** argv)
         collection = mongoc_client_get_collection (client, "data", "dataset");
 
         document = bson_new();
+        bson_oid_init (&oid, NULL);
+        BSON_APPEND_OID (document, "_id", &oid);
 
         //Append Sorted items
         BSON_APPEND_ARRAY_BEGIN(document, "items", &child);
-        for(uint32_t i = 0; i < coop.items.size(); i++){
+        for(uint32_t i = 0; (int) i < coop.items.size(); i++){
             sprintf(temp, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
             keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
             bson_append_utf8(&child, key, (int) keylen, temp, -1);
@@ -255,12 +207,41 @@ int main(int argc, char** argv)
         bson_append_array_end(document, &child);
 
         //Append Tab_transactions
+        BSON_APPEND_ARRAY_BEGIN(document, "tab_transactions", &child);
+        for(int i = 0; i < coop.tabTransactions.size(); i++){
+            for(int j = 0; j < coop.tabTransactions[i].size(); j++){
+                count++;
+                sprintf(temp, "%s%d", sign(coop.tabTransactions[i][j]) ? "-" :  "", var(coop.tabTransactions[i][j]));
+                keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+                bson_append_utf8(&child, key, (int) keylen, temp, -1);
+            }
+            count++;
+            sprintf(temp, ";");
+            keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+            bson_append_utf8(&child, key, (int) keylen, temp, -1);
+        }
+        bson_append_array_end(document, &child);
+        count = 0;
 
         //Append Appear_Trans
+        BSON_APPEND_ARRAY_BEGIN(document, "appear_trans", &child);
+        for(int i = 0; i < coop.appearTrans.size(); i++){
+            for(int j = 0; j < coop.appearTrans[i].size(); j++){
+                count++;
+                sprintf(temp, "%d", coop.appearTrans[i][j]);
+                keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+                bson_append_utf8(&child, key, (int) keylen, temp, -1);
+            }
+            count++;
+            sprintf(temp, ";");
+            keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+            bson_append_utf8(&child, key, (int) keylen, temp, -1);
+        }
+        bson_append_array_end(document, &child);
 
         //Append Occ
         BSON_APPEND_ARRAY_BEGIN(document, "occ", &child);
-        for(uint32_t i; i < coop.occ.size(); i++){
+        for(uint32_t i = 0; (int) i < coop.occ.size(); i++){
             sprintf(temp, "%d", coop.occ[i]);
             keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
             bson_append_utf8(&child, key, (int) keylen, temp, -1);
@@ -268,7 +249,6 @@ int main(int argc, char** argv)
         bson_append_array_end(document, &child);
 
         str = bson_as_canonical_extended_json(document, NULL);
-        //printf("%s", str);
 
         FILE* fichier = fopen("test.txt", "w");
         if(fichier != NULL){
@@ -277,6 +257,10 @@ int main(int argc, char** argv)
         }
 
         bson_free(str);
+
+        if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+            fprintf (stderr, "%s\n", error.message);
+        }
 
         bson_destroy(document);
         mongoc_database_destroy(database);
