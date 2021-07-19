@@ -27,6 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <iostream>
 
 #include <librdkafka/rdkafka.h>
+#include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
 #include "common.h"
@@ -199,7 +200,6 @@ int main(int argc, char** argv)
 
         //Mongo
         const char *mongo_config_file = "mongo.config";
-        int test = 0;
         char *uri_string;
         char *username;
         char *password;
@@ -208,9 +208,13 @@ int main(int argc, char** argv)
         mongoc_database_t *database;
         mongoc_collection_t *collection;
         bson_t *command, reply, *insert;
+        bson_t *document;
+        bson_t child;
         bson_error_t error;
         char *str;
         bool retval;
+        const char *key;
+        size_t keylen;
 
         if (mongo_config(mongo_config_file, &uri_string, &username, &password) != 0){
             printf("Failed mongo config");
@@ -238,8 +242,43 @@ int main(int argc, char** argv)
 
         database = mongoc_client_get_database(client, "data");
         collection = mongoc_client_get_collection (client, "data", "dataset");
-        
 
+        document = bson_new();
+
+        //Append Sorted items
+        BSON_APPEND_ARRAY_BEGIN(document, "items", &child);
+        for(uint32_t i = 0; i < coop.items.size(); i++){
+            sprintf(temp, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
+            keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
+            bson_append_utf8(&child, key, (int) keylen, temp, -1);
+        }
+        bson_append_array_end(document, &child);
+
+        //Append Tab_transactions
+
+        //Append Appear_Trans
+
+        //Append Occ
+        BSON_APPEND_ARRAY_BEGIN(document, "occ", &child);
+        for(uint32_t i; i < coop.occ.size(); i++){
+            sprintf(temp, "%d", coop.occ[i]);
+            keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
+            bson_append_utf8(&child, key, (int) keylen, temp, -1);
+        }
+        bson_append_array_end(document, &child);
+
+        str = bson_as_canonical_extended_json(document, NULL);
+        //printf("%s", str);
+
+        FILE* fichier = fopen("test.txt", "w");
+        if(fichier != NULL){
+            fprintf(fichier, "%s", str);
+            fclose(fichier);
+        }
+
+        bson_free(str);
+
+        bson_destroy(document);
         mongoc_database_destroy(database);
         mongoc_client_destroy(client);
         mongoc_cleanup();
