@@ -58,7 +58,6 @@ rd_kafka_conf_t *read_config (const char *config_file) {
                 char *s = buf;
                 char *t;
                 char *key, *value;
-                char errstr[256];
 
                 line++;
 
@@ -191,4 +190,67 @@ int create_topic (rd_kafka_t *rk, const char *topic,
         rd_kafka_event_destroy(rkev);
 
         return ret;
+}
+
+
+
+int mongo_config(const char *config_file, char **uri_string, char **username, char **password){
+        FILE *fp;
+        char buf[1024];
+        int line = 0;
+
+        if (!(fp = fopen(config_file, "r"))){
+                fprintf(stderr, "Failed to open %s: %s\n", config_file, strerror(errno));
+                return NULL;
+        }
+
+        /* Read configuration file, line by line. */
+        while(fgets(buf, sizeof(buf), fp)){
+                char *s = buf;
+                char *t;
+                char *key, *value;
+
+                line++;
+
+                /* Left-trim */
+                while (isspace(*s))
+                        s++;
+
+                /* Right-trim */
+                t = s + strlen(s) - 1;
+                while (t >= s && isspace(*t))
+                        t--;
+                *(t+1) = '\0';
+
+                /* Ignore empty and comment lines */
+                if (!*s || *s == '#')
+                        continue;
+
+                /* Expected format: "key=value".
+                 * Find "=" and split line up into key and value. */
+                if (!(t = strchr(s, '=')) || t == s) {
+                        fprintf(stderr, "%s:%d: invalid syntax: expected key=value\n", config_file, line);
+                        return NULL;
+                }
+
+                key = s;
+                *t = '\0';
+                value = t+1;
+                
+                if (strcmp(key, "username") == 0){
+                        *username = (char *) malloc(strlen(value) + 1);
+                        strcpy(*username, value);
+                }
+                else if (strcmp(key, "password") == 0){
+                        *password = (char *) malloc(strlen(value) + 1);
+                        strcpy(*password, value);
+                }
+                else if (strcmp(key, "uri") == 0){
+                        *uri_string = (char *) malloc(strlen(value) + 1);
+                        strcpy(*uri_string, value);
+                }
+        }
+        fclose(fp);
+
+        return 0;
 }

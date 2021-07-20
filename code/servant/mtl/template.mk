@@ -47,6 +47,7 @@ CFLAGS    += -I$(MROOT) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS
 LFLAGS    += -lz
 
 KAFKA = -I/usr/local/include -L/usr/local/lib -lrdkafka -lm
+MONGO = -I/usr/local/include/libbson-1.0 -I/usr/local/include/libmongoc-1.0 -lmongoc-1.0 -lbson-1.0
 
 .PHONY : s p d r rs clean 
 
@@ -92,14 +93,14 @@ lib$(LIB)_release.a:	$(filter-out */Main.or, $(RCOBJS))
 ##echo message
 ##compiler (g++) flags () kafka flags (-lrdkafka -lcppkafka) -c -o $@ $<
 	@echo Compiling: $(subst $(MROOT)/,,$@)
-	@$(CXX) $(CFLAGS) -c -o $@ $< $(KAFKA)
+	@$(CXX) $(CFLAGS) -c -o $@ $< $(KAFKA) $(MONGO)
 
 ## Linking rules (standard/profile/debug/release)
 $(EXEC) $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static:
 ##echo message
 ##compiler (g++) $^ flags () kafka flags (-lrdkafka -lcppkafka) -o $@
 	@echo Linking: "$@ ( $(foreach f,$^,$(subst $(MROOT)/,,$f)) )"
-	@$(CXX) $^ $(LFLAGS) -o $@ $(KAFKA)
+	@$(CXX) $^ $(LFLAGS) -o $@ $(KAFKA) $(MONGO)
 
 ## Library rules (standard/profile/debug/release)
 lib$(LIB)_standard.a lib$(LIB)_profile.a lib$(LIB)_release.a lib$(LIB)_debug.a:
@@ -123,7 +124,7 @@ clean:
 ## Make dependencies
 depend.mk: $(CSRCS) $(CHDRS)
 	@echo Making dependencies
-	@$(CXX) $(CFLAGS) -I$(MROOT) $(KAFKA) \
+	@$(CXX) $(CFLAGS) -I$(MROOT) $(KAFKA) $(MONGO) \
 	   $(CSRCS) -MM | sed 's|\(.*\):|$(PWD)/\1 $(PWD)/\1r $(PWD)/\1d $(PWD)/\1p:|' > depend.mk
 	@for dir in $(DEPDIR); do \
 	      if [ -r $(MROOT)/$${dir}/depend.mk ]; then \
