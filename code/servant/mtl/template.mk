@@ -46,7 +46,7 @@ COPTIMIZE ?= -O3
 CFLAGS    += -I$(MROOT) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS
 LFLAGS    += -lz
 
-KAFKA = -I/usr/local/include -L/usr/local/lib -lrdkafka -lm
+KAFKA = -I/usr/lib/x86_64-linux-gnu -I/usr/local/include -L/usr/local/lib -lrdkafka -lm
 MONGO = -I/usr/local/include/libbson-1.0 -I/usr/local/include/libmongoc-1.0 -lmongoc-1.0 -lbson-1.0
 
 .PHONY : s p d r rs clean 
