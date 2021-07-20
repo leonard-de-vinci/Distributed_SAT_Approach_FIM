@@ -263,6 +263,7 @@ int main(int argc, char** argv)
         }
 
         bson_destroy(document);
+        mongoc_collection_destroy(collection);
         mongoc_database_destroy(database);
         mongoc_client_destroy(client);
         mongoc_cleanup();
