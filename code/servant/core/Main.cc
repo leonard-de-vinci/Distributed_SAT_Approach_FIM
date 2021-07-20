@@ -29,6 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <string>
 
 #include <librdkafka/rdkafka.h>
+#include <bson/bson.h>
+#include <mongoc/mongoc.h>
 
 #include "common.h"
 #include "json.h"
@@ -129,13 +131,73 @@ int main(int argc, char** argv)
     	if (argc == 1)
         	printf("Reading from standard input... Use '--help' for help.\n");
 
+		// Mongo
+		const char *mongo_config_file = "mongo.config";
+		const bson_t *document;
+        char *uri_string;
+        char *username;
+        char *password;
+        char *str;
+        mongoc_uri_t *uri;
+        mongoc_client_t *client;
+        mongoc_database_t *database;
+        mongoc_collection_t *collection;
+		mongoc_cursor_t *cursor;
+        bson_t *query;
+        bson_error_t error;
+
+		if (mongo_config(mongo_config_file, &uri_string, &username, &password) != 0){
+            printf("Failed mongo config");
+            return 1;
+        }
+
+        mongoc_init();
+
+        uri = mongoc_uri_new_with_error(uri_string, &error);
+        if (!uri){
+            fprintf (stderr, "failed to parse URI: %s\nerror message: %s\n", uri_string, error.message);
+            return EXIT_FAILURE;
+        }
+
+        client = mongoc_client_new_from_uri(uri);
+        if (!client){
+            return EXIT_FAILURE;
+        }
+
+        mongoc_client_set_appname (client, "database-push");
+
+        database = mongoc_client_get_database(client, "data");
+        collection = mongoc_client_get_collection (client, "data", "dataset");
+		query = bson_new();
+		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		while(mongoc_cursor_next(cursor, &document)){
+			str = bson_as_canonical_extended_json(document, NULL);
+			FILE* fichier = fopen("test.txt", "w");
+			if(fichier != NULL){
+				fprintf(fichier, "%s", str);
+				fclose(fichier);
+			}
+			bson_free(str);
+		}
+
+		bson_destroy(query);
+		mongoc_cursor_destroy(cursor);
+		mongoc_collection_destroy(collection);
+		mongoc_database_destroy(database);
+        mongoc_client_destroy(client);
+        mongoc_cleanup();
+
+		return 1;
+
+
 		// Kafka
 		rd_kafka_t *rk; //consumer instance handle
         rd_kafka_conf_t *conf; //temporary configuration object
 		rd_kafka_resp_err_t err; //librdkafka API error code
         char errstr[512]; //librdkafka API error reporting buffer
 
-        char **topics = ["guiding_path"];           /* Argument: list of topics to subscribe to */
+        const char *topics = "guiding_path";           /* Argument: list of topics to subscribe to */
         int topic_cnt = 1;           /* Number of topics to subscribe to */
         rd_kafka_topic_partition_list_t *subscription; /* Subscribed topics */
 
@@ -173,8 +235,7 @@ int main(int argc, char** argv)
 
         /* Convert the list of topics to a format suitable for librdkafka */
         subscription = rd_kafka_topic_partition_list_new(topic_cnt);
-        for (i = 0 ; i < topic_cnt ; i++)
-            rd_kafka_topic_partition_list_add(subscription, topics[i], RD_KAFKA_PARTITION_UA); // the partition is ignored by subscribe()
+        rd_kafka_topic_partition_list_add(subscription, topics, RD_KAFKA_PARTITION_UA); // the partition is ignored by subscribe()
 
         /* Subscribe to the list of topics */
         err = rd_kafka_subscribe(rk, subscription);
@@ -223,15 +284,15 @@ int main(int argc, char** argv)
             printf("Message on %s [%"PRId32"] at offset %"PRId64":\n", rd_kafka_topic_name(rkm->rkt), rkm->partition, rkm->offset);
 
             /* Print the message key. */
-            if (rkm->key && is_printable(rkm->key, rkm->key_len))
+            if ((const char *)rkm->key && is_printable((const char *)rkm->key, rkm->key_len))
                 printf(" Key: %.*s\n", (int)rkm->key_len, (const char *)rkm->key);
-            else if (rkm->key)
+            else if ((const char *)rkm->key)
         		printf(" Key: (%d bytes)\n", (int)rkm->key_len);
 
             /* Print the message value/payload. */
-            if (rkm->payload && is_printable(rkm->payload, rkm->len))
+            if ((const char *)rkm->payload && is_printable((const char *)rkm->payload, rkm->len))
                 printf(" Value: %.*s\n", (int)rkm->len, (const char *)rkm->payload);
-            else if (rkm->payload)
+            else if ((const char *)rkm->payload)
                 printf(" Value: (%d bytes)\n", (int)rkm->len);
 
             rd_kafka_message_destroy(rkm);
