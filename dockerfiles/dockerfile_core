@@ -19,6 +19,8 @@ RUN apt-get update -y\
 	&& apt-get install libsasl2-dev -y\
 	&& apt-get install openjdk-8-jre -y\
 	&& apt-get install gradle -y\
+	&& apt-get install libmongoc-dev -y\
+  	&& apt-get install libbson-dev -y\
 	&& apt-get install libbson-1.0-0 -y\
 	&& apt-get install libmongoc-1.0-0 -y\
 	&& apt-get clean -y
