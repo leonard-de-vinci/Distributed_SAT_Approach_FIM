@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <signal.h>
+#include <cstdlib>
 
 #include <librdkafka/rdkafka.h>
 
@@ -201,7 +202,7 @@ int mongo_config(const char *config_file, char **uri_string, char **username, ch
 
         if (!(fp = fopen(config_file, "r"))){
                 fprintf(stderr, "Failed to open %s: %s\n", config_file, strerror(errno));
-                return NULL;
+                return 1;
         }
 
         /* Read configuration file, line by line. */
@@ -230,7 +231,7 @@ int mongo_config(const char *config_file, char **uri_string, char **username, ch
                  * Find "=" and split line up into key and value. */
                 if (!(t = strchr(s, '=')) || t == s) {
                         fprintf(stderr, "%s:%d: invalid syntax: expected key=value\n", config_file, line);
-                        return NULL;
+                        return 1;
                 }
 
                 key = s;
