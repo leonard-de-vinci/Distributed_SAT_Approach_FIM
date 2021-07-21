@@ -5,7 +5,7 @@ WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 ADD ./code/servant ./code/servant
 ADD ./data ./data
 
-RUN cd code/master/core \
+RUN cd code/servant/core \
 	&& make clean\
 	&& make -k CXX=g++-10
 
