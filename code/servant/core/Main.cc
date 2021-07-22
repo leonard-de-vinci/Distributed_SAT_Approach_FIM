@@ -133,15 +133,17 @@ int main(int argc, char** argv)
 
 		// Mongo
 		const char *mongo_config_file = "mongo.config";
-		const bson_t *document;
+		const bson_t *config, *items, *tab_transactions, *appear_trans, *occ;
         char *uri_string;
         char *str;
+		int n_items, n_trans, n_appear_trans, n_occ;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
         mongoc_database_t *database;
         mongoc_collection_t *collection;
 		mongoc_cursor_t *cursor;
         bson_t *query;
+		bson_t reply;
         bson_error_t error;
 
 		if (!(uri_string = mongo_config(mongo_config_file))){
@@ -162,22 +164,63 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
 
-        mongoc_client_set_appname (client, "database-push");
+        mongoc_client_set_appname (client, "database-pull");
+        database = mongoc_client_get_database(client, "dataset");
 
-        database = mongoc_client_get_database(client, "data");
-        collection = mongoc_client_get_collection (client, "data", "dataset");
+
+		// Config of the dataset
+		collection = mongoc_client_get_collection (client, "dataset", "config");
 		query = bson_new();
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
-		while(mongoc_cursor_next(cursor, &document)){
-			str = bson_as_canonical_extended_json(document, NULL);
-			FILE* fichier = fopen("test.txt", "w");
-			if(fichier != NULL){
-				fprintf(fichier, "%s", str);
-				fclose(fichier);
-			}
+		while(mongoc_cursor_next(cursor, &config)){
+			str = bson_as_canonical_extended_json(config, NULL);
+			printf("%s\n", str);
 			bson_free(str);
 		}
+        
+		// query = bson_new();
+		// cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		// while(mongoc_cursor_next(cursor, &items)){
+		// 	str = bson_as_canonical_extended_json(items, NULL);
+		// 	fichier = fopen("test.txt", "w");
+		// 	if(fichier != NULL){
+		// 		fprintf(fichier, "%s\n", str);
+		// 		fclose(fichier);
+		// 	}
+		// 	bson_free(str);
+		// }
+
+		// while(mongoc_cursor_next(cursor, &tab_transactions)){
+		// 	str = bson_as_canonical_extended_json(tab_transactions, NULL);
+		// 	fichier = fopen("test.txt", "a");
+		// 	if(fichier != NULL){
+		// 		fprintf(fichier, "%s\n", str);
+		// 		fclose(fichier);
+		// 	}
+		// 	bson_free(str);
+		// }
+
+		// while(mongoc_cursor_next(cursor, &appear_trans)){
+		// 	str = bson_as_canonical_extended_json(appear_trans, NULL);
+		// 	fichier = fopen("test.txt", "a");
+		// 	if(fichier != NULL){
+		// 		fprintf(fichier, "%s\n", str);
+		// 		fclose(fichier);
+		// 	}
+		// 	bson_free(str);
+		// }
+
+		// while(mongoc_cursor_next(cursor, &occ)){
+		// 	str = bson_as_canonical_extended_json(occ, NULL);
+		// 	fichier = fopen("test.txt", "a");
+		// 	if(fichier != NULL){
+		// 		fprintf(fichier, "%s", str);
+		// 		fclose(fichier);
+		// 	}
+		// 	bson_free(str);
+		// }
 
 		bson_destroy(query);
 		mongoc_cursor_destroy(cursor);
@@ -306,95 +349,95 @@ int main(int argc, char** argv)
 
 		// Standard input file reading
         
-		std::string buff = "";
-		int status = 0;
-		vec<Lit> items;
-		vec<Lit> trans;
-		std::string temp = "";
-		int ind = 0;
-		int var_ = 0;
+		// std::string buff = "";
+		// int status = 0;
+		// vec<Lit> items;
+		// vec<Lit> trans;
+		// std::string temp = "";
+		// int ind = 0;
+		// int var_ = 0;
 
-		std::ifstream data(argv[1]);
-		while(getline(data, buff)){
-			if(buff != ""){
-				if(buff.at(0) == 'T'){
-					status = 1;
-				}
-				else if(buff.at(0) == 'A'){
-					status = 2;
-				}
-				else if(buff.at(0) == 'D'){
-					status = 3;
-				}
-				else if(buff.at(0) == 'O'){
-					status = 4;
-				}
+		// std::ifstream data(argv[1]);
+		// while(getline(data, buff)){
+		// 	if(buff != ""){
+		// 		if(buff.at(0) == 'T'){
+		// 			status = 1;
+		// 		}
+		// 		else if(buff.at(0) == 'A'){
+		// 			status = 2;
+		// 		}
+		// 		else if(buff.at(0) == 'D'){
+		// 			status = 3;
+		// 		}
+		// 		else if(buff.at(0) == 'O'){
+		// 			status = 4;
+		// 		}
 
-				if(status == 0){ //Items
-					if(buff.at(0) != 'I'){
-						items.push(mkLit(stoi(buff), false));
-					}
-				}
-				else if(status == 1){ //Tab Transactions
-					if(buff.at(0) != 'T'){
-						temp = "";
-						for(int i = 0; i < buff.length(); i++){
-							if(buff.at(i) != '[' && buff.at(i) != ']'){
-								if(buff.at(i) == ','){
-									trans.push(mkLit(stoi(temp), false));
-									temp = "";
-								}
-								else{
-									temp += buff.at(i);
-								}
-							}
-						}
-						var_ += trans.size();
-						for(int t = 0; t < coop.nbThreads; t++){
-	  						while (var_ >= coop.solvers[t].nVars()) coop.solvers[t].newVar();
-						}
-						coop.addTransactions(trans);
-						trans.clear();
-					}
-				}
-				else if(status == 2){ //Appear Trans
-					if(buff.at(0) != 'A'){
-						temp = "";
-						coop.appearTrans.push();
-						ind = coop.appearTrans.size()-1;
-						for(int i = 0; i < buff.length(); i++){
-							if(buff.at(i) != '[' && buff.at(i) != ']'){
-								if(buff.at(i) == ','){
-									coop.appearTrans[ind].push(stoi(temp));
-									temp = "";
-								}
-								else{
-									temp += buff.at(i);
-								}
-							}
-						}
-					}
-				}
-				else if(status == 3){ // Div begining
-					if(buff.at(0) != 'D'){
-						coop.div_begining = stoi(buff);
-					}
-				}
-				else{ // Occ
-					if(buff.at(0) != 'O'){
-						coop.occ.push(stoi(buff));
-					}
-				}
-			}
-		}
+		// 		if(status == 0){ //Items
+		// 			if(buff.at(0) != 'I'){
+		// 				items.push(mkLit(stoi(buff), false));
+		// 			}
+		// 		}
+		// 		else if(status == 1){ //Tab Transactions
+		// 			if(buff.at(0) != 'T'){
+		// 				temp = "";
+		// 				for(int i = 0; i < buff.length(); i++){
+		// 					if(buff.at(i) != '[' && buff.at(i) != ']'){
+		// 						if(buff.at(i) == ','){
+		// 							trans.push(mkLit(stoi(temp), false));
+		// 							temp = "";
+		// 						}
+		// 						else{
+		// 							temp += buff.at(i);
+		// 						}
+		// 					}
+		// 				}
+		// 				var_ += trans.size();
+		// 				for(int t = 0; t < coop.nbThreads; t++){
+	  	// 					while (var_ >= coop.solvers[t].nVars()) coop.solvers[t].newVar();
+		// 				}
+		// 				coop.addTransactions(trans);
+		// 				trans.clear();
+		// 			}
+		// 		}
+		// 		else if(status == 2){ //Appear Trans
+		// 			if(buff.at(0) != 'A'){
+		// 				temp = "";
+		// 				coop.appearTrans.push();
+		// 				ind = coop.appearTrans.size()-1;
+		// 				for(int i = 0; i < buff.length(); i++){
+		// 					if(buff.at(i) != '[' && buff.at(i) != ']'){
+		// 						if(buff.at(i) == ','){
+		// 							coop.appearTrans[ind].push(stoi(temp));
+		// 							temp = "";
+		// 						}
+		// 						else{
+		// 							temp += buff.at(i);
+		// 						}
+		// 					}
+		// 				}
+		// 			}
+		// 		}
+		// 		else if(status == 3){ // Div begining
+		// 			if(buff.at(0) != 'D'){
+		// 				coop.div_begining = stoi(buff);
+		// 			}
+		// 		}
+		// 		else{ // Occ
+		// 			if(buff.at(0) != 'O'){
+		// 				coop.occ.push(stoi(buff));
+		// 			}
+		// 		}
+		// 	}
+		// }
 
-		for(int t = 0; t < nbThreads; t++)
-		{
-			items.copyTo(coop.solvers[t].allItems);
-			for(int i = 0; i < items.size(); i++)
-				coop.solvers[t].VecItems.push(var(items[i]));
-			coop.solvers[t].nbTrans = coop.tabTransactions.size();
-		}
+		// for(int t = 0; t < nbThreads; t++)
+		// {
+		// 	items.copyTo(coop.solvers[t].allItems);
+		// 	for(int i = 0; i < items.size(); i++)
+		// 		coop.solvers[t].VecItems.push(var(items[i]));
+		// 	coop.solvers[t].nbTrans = coop.tabTransactions.size();
+		// }
 	
 		if (coop.solvers[0].verbosity > 0){
         	printf(" ===============================================[ Problem Statistics ]==================================================\n");
