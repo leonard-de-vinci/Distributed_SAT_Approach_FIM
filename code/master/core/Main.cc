@@ -148,6 +148,7 @@ int main(int argc, char** argv)
         char *uri_string;
         char temp[30] = {0};
         bool sent = true;
+        int val = 0;
         size_t keylen;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
@@ -187,23 +188,19 @@ int main(int argc, char** argv)
         BSON_APPEND_OID(document, "_id", &oid);
 
         BSON_APPEND_DOCUMENT_BEGIN(document, "items", &child);
-        sprintf(temp, "%d", coop.items.size());
-        BSON_APPEND_UTF8(&child, "number of items", temp);
+        BSON_APPEND_INT32(&child, "number of items", coop.items.size());
         bson_append_document_end(document, &child);
 
         BSON_APPEND_DOCUMENT_BEGIN(document, "tab_transactions", &child);
-        sprintf(temp, "%d", coop.tabTransactions.size());
-        BSON_APPEND_UTF8(&child, "number of transactions", temp);
+        BSON_APPEND_INT32(&child, "number of transactions", coop.tabTransactions.size());
         bson_append_document_end(document, &child);
 
         BSON_APPEND_DOCUMENT_BEGIN(document, "appear_trans", &child);
-        sprintf(temp, "%d", coop.appearTrans.size());
-        BSON_APPEND_UTF8(&child, "number of appearing transactions", temp);
+        BSON_APPEND_INT32(&child, "number of appearing transactions", coop.appearTrans.size());
         bson_append_document_end(document, &child);
 
         BSON_APPEND_DOCUMENT_BEGIN(document, "occ", &child);
-        sprintf(temp, "%d", coop.occ.size());
-        BSON_APPEND_UTF8(&child, "number of items", temp);
+        BSON_APPEND_INT32(&child, "number of items", coop.occ.size());
         bson_append_document_end(document, &child);
 
         if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
@@ -226,9 +223,12 @@ int main(int argc, char** argv)
 
         BSON_APPEND_ARRAY_BEGIN(document, "items", &child);
         for(uint32_t i = 0; (int) i < coop.items.size(); i++){
-            sprintf(temp, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
+            val = var(coop.items[i]);
+            if(sign(coop.items[i]))
+                val = -val;
+            sprintf(temp, "%d", val);
             keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
-            bson_append_utf8(&child, key, (int) keylen, temp, -1);
+            bson_append_int32(&child, key, (int) keylen, val);
         }
         bson_append_array_end(document, &child);
 
@@ -256,9 +256,12 @@ int main(int argc, char** argv)
             sprintf(temp, "transaction %d", i);
             BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
             for(uint32_t j = 0; (int) j < coop.tabTransactions[i].size(); j++){
-                sprintf(temp, "%s%d", sign(coop.tabTransactions[i][j]) ? "-" :  "", var(coop.tabTransactions[i][j]));
-                keylen = bson_uint32_to_string(j, &key, temp, sizeof(temp));
-                bson_append_utf8(&child, key, (int) keylen, temp, -1);
+                val = var(coop.tabTransactions[i][j]);
+                if(sign(coop.tabTransactions[i][j]))
+                    val = -val;
+                sprintf(temp, "%d", val);
+                keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
+                bson_append_int32(&child, key, -1, val);
             }
             bson_append_array_end(document, &child);
 
@@ -289,8 +292,8 @@ int main(int argc, char** argv)
             BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
             for(uint32_t j = 0; (int) j < coop.appearTrans[i].size(); j++){
                 sprintf(temp, "%d", coop.appearTrans[i][j]);
-                keylen = bson_uint32_to_string(j, &key, temp, sizeof(temp));
-                bson_append_utf8(&child, key, (int) keylen, temp, -1);
+                keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
+                bson_append_int32(&child, key, (int) keylen, coop.appearTrans[i][j]);
             }
             bson_append_array_end(document, &child);
 
@@ -319,7 +322,7 @@ int main(int argc, char** argv)
         for(uint32_t i = 0; (int) i < coop.occ.size(); i++){
             sprintf(temp, "%d", coop.occ[i]);
             keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
-            bson_append_utf8(&child, key, (int) keylen, temp, -1);
+            bson_append_int32(&child, key, (int) keylen, coop.occ[i]);
         }
         bson_append_array_end(document, &child);
 
