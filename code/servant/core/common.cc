@@ -22,6 +22,7 @@
 #include <assert.h>
 #include <signal.h>
 #include <cstdlib>
+#include <stdlib.h>
 
 #include <librdkafka/rdkafka.h>
 
@@ -195,14 +196,23 @@ int create_topic (rd_kafka_t *rk, const char *topic,
 
 
 
-int mongo_config(const char *config_file, char **uri_string, char **username, char **password){
+char *mongo_config(const char *config_file){
         FILE *fp;
         char buf[1024];
         int line = 0;
+        size_t totLen = 0;
+        char *start = "mongodb://";
+        char *s1 = ":";
+        char *s2 = "@";
+        char *uri_string;
+        char *username;
+        char *password;
+        char *address;
+        char *port;
 
         if (!(fp = fopen(config_file, "r"))){
                 fprintf(stderr, "Failed to open %s: %s\n", config_file, strerror(errno));
-                return 1;
+                return NULL;
         }
 
         /* Read configuration file, line by line. */
@@ -231,7 +241,7 @@ int mongo_config(const char *config_file, char **uri_string, char **username, ch
                  * Find "=" and split line up into key and value. */
                 if (!(t = strchr(s, '=')) || t == s) {
                         fprintf(stderr, "%s:%d: invalid syntax: expected key=value\n", config_file, line);
-                        return 1;
+                        return NULL;
                 }
 
                 key = s;
@@ -239,19 +249,39 @@ int mongo_config(const char *config_file, char **uri_string, char **username, ch
                 value = t+1;
                 
                 if (strcmp(key, "username") == 0){
-                        *username = (char *) malloc(strlen(value) + 1);
-                        strcpy(*username, value);
+                        username = (char *) malloc(strlen(value) + 1);
+                        strcpy(username, value);
+                        totLen += strlen(value);
                 }
                 else if (strcmp(key, "password") == 0){
-                        *password = (char *) malloc(strlen(value) + 1);
-                        strcpy(*password, value);
+                        password = (char *) malloc(strlen(value) + 1);
+                        strcpy(password, value);
+                        totLen += strlen(value);
                 }
-                else if (strcmp(key, "uri") == 0){
-                        *uri_string = (char *) malloc(strlen(value) + 1);
-                        strcpy(*uri_string, value);
+                else if (strcmp(key, "address") == 0){
+                        address = (char *) malloc(strlen(value) + 1);
+                        strcpy(address, value);
+                        totLen += strlen(value);
+                }
+                else if (strcmp(key, "port") == 0){
+                        port = (char *) malloc(strlen(value) + 1);
+                        strcpy(port, value);
+                        totLen += strlen(value);
                 }
         }
         fclose(fp);
 
-        return 0;
+        if (username != NULL && password != NULL && address != NULL && port != NULL){
+                uri_string = (char *) malloc(strlen(start) + strlen(s1) + strlen(s2) + strlen(s1) + totLen + 1);
+                strcpy(uri_string, start);
+                strcat(uri_string, username);
+                strcat(uri_string, s1);
+                strcat(uri_string, password);
+                strcat(uri_string, s2);
+                strcat(uri_string, address);
+                strcat(uri_string, s1);
+                strcat(uri_string, port);
+                }
+
+        return uri_string;
 }
