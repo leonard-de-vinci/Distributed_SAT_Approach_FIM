@@ -155,8 +155,6 @@ int main(int argc, char** argv)
         const char *mongo_config_file = "mongo.config";
         const char *key;
         char *uri_string;
-        char *username;
-        char *password;
         char *str;
         char temp[16] = {0};
         size_t keylen;
@@ -170,10 +168,12 @@ int main(int argc, char** argv)
         bson_error_t error;
         bson_oid_t oid;
 
-        if (mongo_config(mongo_config_file, &uri_string, &username, &password) != 0){
+        if (!(uri_string = mongo_config(mongo_config_file))){
             printf("Failed mongo config");
             return 1;
         }
+
+        printf("%s\n", uri_string);
 
         mongoc_init();
 
@@ -206,47 +206,47 @@ int main(int argc, char** argv)
         }
         bson_append_array_end(document, &child);
 
-        //Append Tab_transactions
-        BSON_APPEND_ARRAY_BEGIN(document, "tab_transactions", &child);
-        for(int i = 0; i < coop.tabTransactions.size(); i++){
-            for(int j = 0; j < coop.tabTransactions[i].size(); j++){
-                count++;
-                sprintf(temp, "%s%d", sign(coop.tabTransactions[i][j]) ? "-" :  "", var(coop.tabTransactions[i][j]));
-                keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
-                bson_append_utf8(&child, key, (int) keylen, temp, -1);
-            }
-            count++;
-            sprintf(temp, ";");
-            keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
-            bson_append_utf8(&child, key, (int) keylen, temp, -1);
-        }
-        bson_append_array_end(document, &child);
-        count = 0;
+        // //Append Tab_transactions
+        // BSON_APPEND_ARRAY_BEGIN(document, "tab_transactions", &child);
+        // for(int i = 0; i < coop.tabTransactions.size(); i++){
+        //     for(int j = 0; j < coop.tabTransactions[i].size(); j++){
+        //         count++;
+        //         sprintf(temp, "%s%d", sign(coop.tabTransactions[i][j]) ? "-" :  "", var(coop.tabTransactions[i][j]));
+        //         keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+        //         bson_append_utf8(&child, key, (int) keylen, temp, -1);
+        //     }
+        //     count++;
+        //     sprintf(temp, ";");
+        //     keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+        //     bson_append_utf8(&child, key, (int) keylen, temp, -1);
+        // }
+        // bson_append_array_end(document, &child);
+        // count = 0;
 
-        //Append Appear_Trans
-        BSON_APPEND_ARRAY_BEGIN(document, "appear_trans", &child);
-        for(int i = 0; i < coop.appearTrans.size(); i++){
-            for(int j = 0; j < coop.appearTrans[i].size(); j++){
-                count++;
-                sprintf(temp, "%d", coop.appearTrans[i][j]);
-                keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
-                bson_append_utf8(&child, key, (int) keylen, temp, -1);
-            }
-            count++;
-            sprintf(temp, ";");
-            keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
-            bson_append_utf8(&child, key, (int) keylen, temp, -1);
-        }
-        bson_append_array_end(document, &child);
+        // //Append Appear_Trans
+        // BSON_APPEND_ARRAY_BEGIN(document, "appear_trans", &child);
+        // for(int i = 0; i < coop.appearTrans.size(); i++){
+        //     for(int j = 0; j < coop.appearTrans[i].size(); j++){
+        //         count++;
+        //         sprintf(temp, "%d", coop.appearTrans[i][j]);
+        //         keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+        //         bson_append_utf8(&child, key, (int) keylen, temp, -1);
+        //     }
+        //     count++;
+        //     sprintf(temp, ";");
+        //     keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+        //     bson_append_utf8(&child, key, (int) keylen, temp, -1);
+        // }
+        // bson_append_array_end(document, &child);
 
-        //Append Occ
-        BSON_APPEND_ARRAY_BEGIN(document, "occ", &child);
-        for(uint32_t i = 0; (int) i < coop.occ.size(); i++){
-            sprintf(temp, "%d", coop.occ[i]);
-            keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
-            bson_append_utf8(&child, key, (int) keylen, temp, -1);
-        }
-        bson_append_array_end(document, &child);
+        // //Append Occ
+        // BSON_APPEND_ARRAY_BEGIN(document, "occ", &child);
+        // for(uint32_t i = 0; (int) i < coop.occ.size(); i++){
+        //     sprintf(temp, "%d", coop.occ[i]);
+        //     keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
+        //     bson_append_utf8(&child, key, (int) keylen, temp, -1);
+        // }
+        // bson_append_array_end(document, &child);
 
         str = bson_as_canonical_extended_json(document, NULL);
 
