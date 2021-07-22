@@ -188,19 +188,19 @@ int main(int argc, char** argv)
         BSON_APPEND_OID(document, "_id", &oid);
 
         BSON_APPEND_DOCUMENT_BEGIN(document, "items", &child);
-        BSON_APPEND_INT32(&child, "number of items", coop.items.size());
+        BSON_APPEND_INT32(&child, "number", coop.items.size());
         bson_append_document_end(document, &child);
 
         BSON_APPEND_DOCUMENT_BEGIN(document, "tab_transactions", &child);
-        BSON_APPEND_INT32(&child, "number of transactions", coop.tabTransactions.size());
+        BSON_APPEND_INT32(&child, "number", coop.tabTransactions.size());
         bson_append_document_end(document, &child);
 
         BSON_APPEND_DOCUMENT_BEGIN(document, "appear_trans", &child);
-        BSON_APPEND_INT32(&child, "number of appearing transactions", coop.appearTrans.size());
+        BSON_APPEND_INT32(&child, "number", coop.appearTrans.size());
         bson_append_document_end(document, &child);
 
         BSON_APPEND_DOCUMENT_BEGIN(document, "occ", &child);
-        BSON_APPEND_INT32(&child, "number of items", coop.occ.size());
+        BSON_APPEND_INT32(&child, "number", coop.occ.size());
         bson_append_document_end(document, &child);
 
         if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
@@ -253,7 +253,7 @@ int main(int argc, char** argv)
             bson_oid_init(&oid, NULL);
             BSON_APPEND_OID (document, "_id", &oid);
             
-            sprintf(temp, "transaction %d", i);
+            sprintf(temp, "transaction_%d", i);
             BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
             for(uint32_t j = 0; (int) j < coop.tabTransactions[i].size(); j++){
                 val = var(coop.tabTransactions[i][j]);
@@ -288,7 +288,7 @@ int main(int argc, char** argv)
             bson_oid_init(&oid, NULL);
             BSON_APPEND_OID (document, "_id", &oid);
 
-            sprintf(temp, "appear trans %d", i);
+            sprintf(temp, "appear_trans_%d", i);
             BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
             for(uint32_t j = 0; (int) j < coop.appearTrans[i].size(); j++){
                 sprintf(temp, "%d", coop.appearTrans[i][j]);
