@@ -43,15 +43,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 using namespace Minisat;
 using namespace std;
 
-string convertToString(char* a){
-    string s = "";
-    int size = sizeof(a);
-    for(int i = 0; i < size; i++){
-        s += a[i];
-    }
-    return s;
-}
-
 static void dr_msg_cb (rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void *opaque) {
         if (rkmessage->err)
             fprintf(stderr, "%% Message delivery failed: %s\n", rd_kafka_err2str(rkmessage->err));
@@ -155,18 +146,17 @@ int main(int argc, char** argv)
         const char *mongo_config_file = "mongo.config";
         const char *key;
         char *uri_string;
-        char *str;
-        char temp[16] = {0};
+        char temp[30] = {0};
+        bool sent = true;
         size_t keylen;
-        uint32_t count = 0;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
         mongoc_database_t *database;
         mongoc_collection_t *collection;
-        bson_t *items, *tab_transactions, *appear_trans, *occ;
+        bson_t *document;
         bson_t child;
         bson_error_t error;
-        bson_oid_t oid_items, oid_tab_transactions, oid_appear_trans, oid_occ;
+        bson_oid_t oid;
 
         if (!(uri_string = mongo_config(mongo_config_file))){
             printf("Failed mongo config");
@@ -186,157 +176,164 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
 
-        mongoc_client_set_appname (client, "database-push");
+        mongoc_client_set_appname(client, "database-push");
 
-        database = mongoc_client_get_database(client, "data");
-        collection = mongoc_client_get_collection (client, "data", "dataset");
+        database = mongoc_client_get_database(client, "dataset");
 
-        items = bson_new();
-        bson_oid_init(&oid_items, NULL);
-        BSON_APPEND_OID (items, "_id", &oid_items);
+        //Configuration
+        collection = mongoc_client_get_collection(client, "dataset", "config");
+        document = bson_new();
+        bson_oid_init(&oid, NULL);
+        BSON_APPEND_OID(document, "_id", &oid);
 
-        //Append Sorted items
-        BSON_APPEND_ARRAY_BEGIN(items, "items", &child);
+        BSON_APPEND_DOCUMENT_BEGIN(document, "items", &child);
+        sprintf(temp, "%d", coop.items.size());
+        BSON_APPEND_UTF8(&child, "number of items", temp);
+        bson_append_document_end(document, &child);
+
+        BSON_APPEND_DOCUMENT_BEGIN(document, "tab_transactions", &child);
+        sprintf(temp, "%d", coop.tabTransactions.size());
+        BSON_APPEND_UTF8(&child, "number of transactions", temp);
+        bson_append_document_end(document, &child);
+
+        BSON_APPEND_DOCUMENT_BEGIN(document, "appear_trans", &child);
+        sprintf(temp, "%d", coop.appearTrans.size());
+        BSON_APPEND_UTF8(&child, "number of appearing transactions", temp);
+        bson_append_document_end(document, &child);
+
+        BSON_APPEND_DOCUMENT_BEGIN(document, "occ", &child);
+        sprintf(temp, "%d", coop.occ.size());
+        BSON_APPEND_UTF8(&child, "number of items", temp);
+        bson_append_document_end(document, &child);
+
+        if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+            fprintf (stderr, "%s\n", error.message);
+        }
+        else{
+            printf("Configuration sent\n");
+        }
+
+        bson_destroy(document);
+        mongoc_collection_destroy(collection);
+
+
+
+        // Items
+        collection = mongoc_client_get_collection(client, "dataset", "items");
+        document = bson_new();
+        bson_oid_init(&oid, NULL);
+        BSON_APPEND_OID(document, "_id", &oid);
+
+        BSON_APPEND_ARRAY_BEGIN(document, "items", &child);
         for(uint32_t i = 0; (int) i < coop.items.size(); i++){
             sprintf(temp, "%s%d", sign(coop.items[i]) ? "-" : "", var(coop.items[i]));
             keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
             bson_append_utf8(&child, key, (int) keylen, temp, -1);
         }
-        bson_append_array_end(items, &child);
+        bson_append_array_end(document, &child);
 
-        str = bson_as_canonical_extended_json(items, NULL);
-
-        FILE* fichier = fopen("test.txt", "w");
-        if(fichier != NULL){
-            fprintf(fichier, "%s\n", str);
-            fclose(fichier);
-        }
-
-        bson_free(str);
-
-        if (!mongoc_collection_insert_one(collection, items, NULL, NULL, &error)){
+        if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
             fprintf (stderr, "%s\n", error.message);
+            sent = false;
         }
 
-        bson_destroy(items);
+        if(sent)
+            printf("Items sent\n");
 
-        printf("Items sent\n");
+        bson_destroy(document);
+        mongoc_collection_destroy(collection);
 
 
 
-        tab_transactions = bson_new();
-        bson_oid_init(&oid_tab_transactions, NULL);
-        BSON_APPEND_OID (tab_transactions, "_id", &oid_tab_transactions);
+        // Tab Transactions
+        collection = mongoc_client_get_collection(client, "dataset", "tab_transactions");
 
-        //Append Tab_transactions
-        BSON_APPEND_ARRAY_BEGIN(tab_transactions, "tab_transactions", &child);
         for(int i = 0; i < coop.tabTransactions.size(); i++){
-            for(int j = 0; j < coop.tabTransactions[i].size(); j++){
-                count++;
+            document = bson_new();
+            bson_oid_init(&oid, NULL);
+            BSON_APPEND_OID (document, "_id", &oid);
+            
+            sprintf(temp, "transaction %d", i);
+            BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
+            for(uint32_t j = 0; (int) j < coop.tabTransactions[i].size(); j++){
                 sprintf(temp, "%s%d", sign(coop.tabTransactions[i][j]) ? "-" :  "", var(coop.tabTransactions[i][j]));
-                keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+                keylen = bson_uint32_to_string(j, &key, temp, sizeof(temp));
                 bson_append_utf8(&child, key, (int) keylen, temp, -1);
             }
-            count++;
-            sprintf(temp, ";");
-            keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
-            bson_append_utf8(&child, key, (int) keylen, temp, -1);
-        }
-        bson_append_array_end(tab_transactions, &child);
-        count = 0;
+            bson_append_array_end(document, &child);
 
-        str = bson_as_canonical_extended_json(tab_transactions, NULL);
+            if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+                fprintf (stderr, "%s\n", error.message);
+                sent = false;
+            }
 
-        fichier = fopen("test.txt", "a");
-        if(fichier != NULL){
-            fprintf(fichier, "%s\n", str);
-            fclose(fichier);
+            bson_destroy(document);
         }
 
-        bson_free(str);
+        if(sent)
+            printf("Tab transactions sent\n");
 
-        if (!mongoc_collection_insert_one(collection, tab_transactions, NULL, NULL, &error)){
-            fprintf (stderr, "%s\n", error.message);
-        }
-
-        bson_destroy(tab_transactions);
-
-        printf("Tab transctions sent\n");
+        mongoc_collection_destroy(collection);
 
 
 
-        appear_trans = bson_new();
-        bson_oid_init(&oid_appear_trans, NULL);
-        BSON_APPEND_OID (appear_trans, "_id", &oid_appear_trans);
-        
-        //Append Appear_Trans
-        BSON_APPEND_ARRAY_BEGIN(appear_trans, "appear_trans", &child);
+        // Appear Trans
+        collection = mongoc_client_get_collection(client, "dataset", "appear_trans");
+
         for(int i = 0; i < coop.appearTrans.size(); i++){
-            for(int j = 0; j < coop.appearTrans[i].size(); j++){
-                count++;
+            document = bson_new();
+            bson_oid_init(&oid, NULL);
+            BSON_APPEND_OID (document, "_id", &oid);
+
+            sprintf(temp, "appear trans %d", i);
+            BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
+            for(uint32_t j = 0; (int) j < coop.appearTrans[i].size(); j++){
                 sprintf(temp, "%d", coop.appearTrans[i][j]);
-                keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
+                keylen = bson_uint32_to_string(j, &key, temp, sizeof(temp));
                 bson_append_utf8(&child, key, (int) keylen, temp, -1);
             }
-            count++;
-            sprintf(temp, ";");
-            keylen = bson_uint32_to_string(count, &key, temp, sizeof(temp));
-            bson_append_utf8(&child, key, (int) keylen, temp, -1);
-        }
-        bson_append_array_end(appear_trans, &child);
+            bson_append_array_end(document, &child);
 
-        str = bson_as_canonical_extended_json(appear_trans, NULL);
+            if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+                fprintf (stderr, "%s\n", error.message);
+                sent = false;
+            }
 
-        fichier = fopen("test.txt", "a");
-        if(fichier != NULL){
-            fprintf(fichier, "%s\n", str);
-            fclose(fichier);
+            bson_destroy(document);
         }
 
-        bson_free(str);
+        if(sent)
+            printf("Appear trans sent\n");
 
-        if (!mongoc_collection_insert_one(collection, appear_trans, NULL, NULL, &error)){
-            fprintf (stderr, "%s\n", error.message);
-        }
-
-        bson_destroy(appear_trans);
-
-        printf("Appear trans sent\n");
+        mongoc_collection_destroy(collection);
 
 
 
-        occ = bson_new();
-        bson_oid_init(&oid_occ, NULL);
-        BSON_APPEND_OID (occ, "_id", &oid_occ);
+        // Occ
+        collection = mongoc_client_get_collection(client, "dataset", "occ");
+        document = bson_new();
+        bson_oid_init(&oid, NULL);
+        BSON_APPEND_OID (document, "_id", &oid);
         
-        //Append Occ
-        BSON_APPEND_ARRAY_BEGIN(occ, "occ", &child);
+        BSON_APPEND_ARRAY_BEGIN(document, "occ", &child);
         for(uint32_t i = 0; (int) i < coop.occ.size(); i++){
             sprintf(temp, "%d", coop.occ[i]);
             keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
             bson_append_utf8(&child, key, (int) keylen, temp, -1);
         }
-        bson_append_array_end(occ, &child);
+        bson_append_array_end(document, &child);
 
-        str = bson_as_canonical_extended_json(occ, NULL);
-
-        fichier = fopen("test.txt", "a");
-        if(fichier != NULL){
-            fprintf(fichier, "%s", str);
-            fclose(fichier);
-        }
-
-        bson_free(str);
-
-        if (!mongoc_collection_insert_one(collection, occ, NULL, NULL, &error)){
+        if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
             fprintf (stderr, "%s\n", error.message);
+            sent = false;
         }
 
-        bson_destroy(occ);
+        if(sent)
+            printf("Occ sent\n");
 
-        printf("Occ sent\n");
-
+        bson_destroy(document);
         mongoc_collection_destroy(collection);
+
         mongoc_database_destroy(database);
         mongoc_client_destroy(client);
         mongoc_cleanup();
