@@ -135,8 +135,6 @@ int main(int argc, char** argv)
 		const char *mongo_config_file = "mongo.config";
 		const bson_t *document;
         char *uri_string;
-        char *username;
-        char *password;
         char *str;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
@@ -146,7 +144,7 @@ int main(int argc, char** argv)
         bson_t *query;
         bson_error_t error;
 
-		if (mongo_config(mongo_config_file, &uri_string, &username, &password) != 0){
+		if (!(uri_string = mongo_config(mongo_config_file))){
             printf("Failed mongo config");
             return 1;
         }
