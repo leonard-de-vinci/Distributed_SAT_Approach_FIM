@@ -133,9 +133,10 @@ int main(int argc, char** argv)
 
 		// Mongo
 		const char *mongo_config_file = "mongo.config";
+		const char *key;
 		const bson_t *config, *items, *tab_transactions, *appear_trans, *occ;
+		const bson_value_t *value;
         char *uri_string;
-        char *str;
 		int n_items, n_trans, n_appear_trans, n_occ;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
@@ -143,8 +144,8 @@ int main(int argc, char** argv)
         mongoc_collection_t *collection;
 		mongoc_cursor_t *cursor;
         bson_t *query;
-		bson_t reply;
         bson_error_t error;
+		bson_iter_t iter, child;
 
 		if (!(uri_string = mongo_config(mongo_config_file))){
             printf("Failed mongo config");
@@ -166,61 +167,71 @@ int main(int argc, char** argv)
 
         mongoc_client_set_appname (client, "database-pull");
         database = mongoc_client_get_database(client, "dataset");
-
-
-		// Config of the dataset
-		collection = mongoc_client_get_collection (client, "dataset", "config");
 		query = bson_new();
+
+
+		// Config
+		collection = mongoc_client_get_collection(client, "dataset", "config");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
 		while(mongoc_cursor_next(cursor, &config)){
-			str = bson_as_canonical_extended_json(config, NULL);
-			printf("%s\n", str);
-			bson_free(str);
+			if(bson_iter_init(&iter, config)){
+				while(bson_iter_next(&iter)){
+					key = bson_iter_key(&iter);
+					if(bson_iter_init_find(&iter, config, key) && BSON_ITER_HOLDS_DOCUMENT(&iter) && bson_iter_recurse(&iter, &child)){
+						while(bson_iter_next(&child)){
+							value = bson_iter_value(&child);
+							if(value->value_type == BSON_TYPE_INT32){
+								printf("Found element value %d for document \"%s\"\n", value->value.v_int32, key);
+							}
+							else{
+								printf("error");
+							}
+						}
+					}
+				}
+			}
 		}
-        
-		// query = bson_new();
-		// cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
-		// while(mongoc_cursor_next(cursor, &items)){
-		// 	str = bson_as_canonical_extended_json(items, NULL);
-		// 	fichier = fopen("test.txt", "w");
-		// 	if(fichier != NULL){
-		// 		fprintf(fichier, "%s\n", str);
-		// 		fclose(fichier);
-		// 	}
-		// 	bson_free(str);
-		// }
+		mongoc_cursor_destroy(cursor);
+		mongoc_collection_destroy(collection);
 
-		// while(mongoc_cursor_next(cursor, &tab_transactions)){
-		// 	str = bson_as_canonical_extended_json(tab_transactions, NULL);
-		// 	fichier = fopen("test.txt", "a");
-		// 	if(fichier != NULL){
-		// 		fprintf(fichier, "%s\n", str);
-		// 		fclose(fichier);
-		// 	}
-		// 	bson_free(str);
-		// }
+		//Items
+		collection = mongoc_client_get_collection(client, "dataset", "items");
+		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
-		// while(mongoc_cursor_next(cursor, &appear_trans)){
-		// 	str = bson_as_canonical_extended_json(appear_trans, NULL);
-		// 	fichier = fopen("test.txt", "a");
-		// 	if(fichier != NULL){
-		// 		fprintf(fichier, "%s\n", str);
-		// 		fclose(fichier);
-		// 	}
-		// 	bson_free(str);
-		// }
+		while(mongoc_cursor_next(cursor, &items)){
+		}
 
-		// while(mongoc_cursor_next(cursor, &occ)){
-		// 	str = bson_as_canonical_extended_json(occ, NULL);
-		// 	fichier = fopen("test.txt", "a");
-		// 	if(fichier != NULL){
-		// 		fprintf(fichier, "%s", str);
-		// 		fclose(fichier);
-		// 	}
-		// 	bson_free(str);
-		// }
+		mongoc_cursor_destroy(cursor);
+		mongoc_collection_destroy(collection);
+
+		//Tab Transactions
+		collection = mongoc_client_get_collection(client, "dataset", "tab_transactions");
+		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		while(mongoc_cursor_next(cursor, &tab_transactions)){
+		}
+
+		mongoc_cursor_destroy(cursor);
+		mongoc_collection_destroy(collection);
+
+		//Appear Trans
+		collection = mongoc_client_get_collection(client, "dataset", "appear_trans");
+		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		while(mongoc_cursor_next(cursor, &appear_trans)){
+		}
+
+		mongoc_cursor_destroy(cursor);
+		mongoc_collection_destroy(collection);
+
+		//Occ
+		collection = mongoc_client_get_collection(client, "dataset", "occ");
+		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		while(mongoc_cursor_next(cursor, &occ)){
+		}
 
 		bson_destroy(query);
 		mongoc_cursor_destroy(cursor);
