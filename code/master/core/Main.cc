@@ -201,6 +201,8 @@ int main(int argc, char** argv)
         mongoc_client_set_appname(client, "database-push");
 
         database = mongoc_client_get_database(client, "dataset");
+        mongoc_database_drop_with_opts(database, NULL, NULL);
+        database = mongoc_client_get_database(client, "dataset");
 
         //Configuration
         collection = mongoc_client_get_collection(client, "dataset", "config");
