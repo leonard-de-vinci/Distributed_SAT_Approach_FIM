@@ -137,7 +137,7 @@ int main(int argc, char** argv)
 		const bson_t *config, *items, *tab_transactions, *appear_trans, *occ;
 		const bson_value_t *value;
         char *uri_string;
-		int n_items, n_trans, n_appear_trans, n_occ;
+		int n_items, n_trans, n_appear_trans, n_occ, var_;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
         mongoc_database_t *database;
@@ -146,6 +146,9 @@ int main(int argc, char** argv)
         bson_t *query;
         bson_error_t error;
 		bson_iter_t iter, child;
+
+		vec<Lit> items_temp;
+		vec<Lit> trans_temp;
 
 		if (!(uri_string = mongo_config(mongo_config_file))){
             printf("Failed mongo config");
@@ -181,12 +184,18 @@ int main(int argc, char** argv)
 					if(bson_iter_init_find(&iter, config, key) && BSON_ITER_HOLDS_DOCUMENT(&iter) && bson_iter_recurse(&iter, &child)){
 						while(bson_iter_next(&child)){
 							value = bson_iter_value(&child);
-							if(value->value_type == BSON_TYPE_INT32){
-								printf("Found element value %d for document \"%s\"\n", value->value.v_int32, key);
+							if(!(value->value_type == BSON_TYPE_INT32)){
+								fprintf(stderr, "failed to parse document: %s in collection config", key);
+								return EXIT_FAILURE;
 							}
-							else{
-								printf("error");
-							}
+							if(strcmp(key, "items") == 0)
+								n_items = value->value.v_int32;
+							else if(strcmp(key, "tab_transactions") == 0)
+								n_trans = value->value.v_int32;
+							else if(strcmp(key, "appear_trans") == 0)
+								n_appear_trans = value->value.v_int32;
+							else if(strcmp(key, "occ") == 0)
+								n_occ = value->value.v_int32;
 						}
 					}
 				}
@@ -196,42 +205,119 @@ int main(int argc, char** argv)
 		mongoc_cursor_destroy(cursor);
 		mongoc_collection_destroy(collection);
 
+		printf("Config received\n");
+
 		//Items
 		collection = mongoc_client_get_collection(client, "dataset", "items");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
 		while(mongoc_cursor_next(cursor, &items)){
+			if(bson_iter_init(&iter, items)){
+				while(bson_iter_next(&iter)){
+					key = bson_iter_key(&iter);
+					if(bson_iter_init_find(&iter, items, key) && BSON_ITER_HOLDS_ARRAY(&iter) && bson_iter_recurse(&iter, &child)){
+						while(bson_iter_next(&child)){
+							value = bson_iter_value(&child);
+							if(!(value->value_type == BSON_TYPE_INT32)){
+								fprintf(stderr, "failed to parse document: %s in collection items", key);
+								return EXIT_FAILURE;
+							}
+							items_temp.push(mkLit(value->value.v_int32, false));
+						}
+					}
+				}
+			}
 		}
 
 		mongoc_cursor_destroy(cursor);
 		mongoc_collection_destroy(collection);
+
+		printf("Items received\n");
 
 		//Tab Transactions
 		collection = mongoc_client_get_collection(client, "dataset", "tab_transactions");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
 		while(mongoc_cursor_next(cursor, &tab_transactions)){
+			if(bson_iter_init(&iter, tab_transactions)){
+				while(bson_iter_next(&iter)){
+					key = bson_iter_key(&iter);
+					if(bson_iter_init_find(&iter, tab_transactions, key) && BSON_ITER_HOLDS_ARRAY(&iter) && bson_iter_recurse(&iter, &child)){
+						while(bson_iter_next(&child)){
+							value = bson_iter_value(&child);
+							if(!(value->value_type == BSON_TYPE_INT32)){
+								fprintf(stderr, "failed to parse document: %s in collection tab_transactions", key);
+								return EXIT_FAILURE;
+							}
+							trans_temp.push(mkLit(value->value.v_int32, false));
+						}
+						var_ += trans_temp.size();
+						for(int t = 0; t < coop.nbThreads; t++){
+	  						while (var_ >= coop.solvers[t].nVars()) coop.solvers[t].newVar();
+						}
+						coop.addTransactions(trans_temp);
+						trans_temp.clear();
+					}
+				}
+			}
 		}
 
 		mongoc_cursor_destroy(cursor);
 		mongoc_collection_destroy(collection);
+
+		printf("Tab transactions received\n");
 
 		//Appear Trans
 		collection = mongoc_client_get_collection(client, "dataset", "appear_trans");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
 		while(mongoc_cursor_next(cursor, &appear_trans)){
+			if(bson_iter_init(&iter, appear_trans)){
+				while(bson_iter_next(&iter)){
+					key = bson_iter_key(&iter);
+					if(bson_iter_init_find(&iter, appear_trans, key) && BSON_ITER_HOLDS_ARRAY(&iter) && bson_iter_recurse(&iter, &child)){
+						coop.appearTrans.push();
+						while(bson_iter_next(&child)){
+							value = bson_iter_value(&child);
+							if(!(value->value_type == BSON_TYPE_INT32)){
+								fprintf(stderr, "failed to parse document: %s in collection appear_trans", key);
+								return EXIT_FAILURE;
+							}
+							coop.appearTrans[coop.appearTrans.size()-1].push(value->value.v_int32);
+						}
+					}
+				}
+			}
 		}
 
 		mongoc_cursor_destroy(cursor);
 		mongoc_collection_destroy(collection);
+
+		printf("Appear trans received\n");
 
 		//Occ
 		collection = mongoc_client_get_collection(client, "dataset", "occ");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
 		while(mongoc_cursor_next(cursor, &occ)){
+			if(bson_iter_init(&iter, occ)){
+				while(bson_iter_next(&iter)){
+					key = bson_iter_key(&iter);
+					if(bson_iter_init_find(&iter, occ, key) && BSON_ITER_HOLDS_ARRAY(&iter) && bson_iter_recurse(&iter, &child)){
+						while(bson_iter_next(&child)){
+							value = bson_iter_value(&child);
+							if(!(value->value_type == BSON_TYPE_INT32)){
+								fprintf(stderr, "failed to parse document: %s in collection occ", key);
+								return EXIT_FAILURE;
+							}
+							coop.occ.push(value->value.v_int32);
+						}
+					}
+				}
+			}
 		}
+
+		printf("Occ received\n");
 
 		bson_destroy(query);
 		mongoc_cursor_destroy(cursor);
@@ -357,90 +443,11 @@ int main(int argc, char** argv)
         /* Destroy the consumer */
         rd_kafka_destroy(rk);
 
-
-		// Standard input file reading
-        
-		// std::string buff = "";
-		// int status = 0;
-		// vec<Lit> items;
-		// vec<Lit> trans;
-		// std::string temp = "";
-		// int ind = 0;
-		// int var_ = 0;
-
-		// std::ifstream data(argv[1]);
-		// while(getline(data, buff)){
-		// 	if(buff != ""){
-		// 		if(buff.at(0) == 'T'){
-		// 			status = 1;
-		// 		}
-		// 		else if(buff.at(0) == 'A'){
-		// 			status = 2;
-		// 		}
-		// 		else if(buff.at(0) == 'D'){
-		// 			status = 3;
-		// 		}
-		// 		else if(buff.at(0) == 'O'){
-		// 			status = 4;
-		// 		}
-
-		// 		if(status == 0){ //Items
-		// 			if(buff.at(0) != 'I'){
-		// 				items.push(mkLit(stoi(buff), false));
-		// 			}
-		// 		}
-		// 		else if(status == 1){ //Tab Transactions
-		// 			if(buff.at(0) != 'T'){
-		// 				temp = "";
-		// 				for(int i = 0; i < buff.length(); i++){
-		// 					if(buff.at(i) != '[' && buff.at(i) != ']'){
-		// 						if(buff.at(i) == ','){
-		// 							trans.push(mkLit(stoi(temp), false));
-		// 							temp = "";
-		// 						}
-		// 						else{
-		// 							temp += buff.at(i);
-		// 						}
-		// 					}
-		// 				}
-		// 				var_ += trans.size();
-		// 				for(int t = 0; t < coop.nbThreads; t++){
-	  	// 					while (var_ >= coop.solvers[t].nVars()) coop.solvers[t].newVar();
-		// 				}
-		// 				coop.addTransactions(trans);
-		// 				trans.clear();
-		// 			}
-		// 		}
-		// 		else if(status == 2){ //Appear Trans
-		// 			if(buff.at(0) != 'A'){
-		// 				temp = "";
-		// 				coop.appearTrans.push();
-		// 				ind = coop.appearTrans.size()-1;
-		// 				for(int i = 0; i < buff.length(); i++){
-		// 					if(buff.at(i) != '[' && buff.at(i) != ']'){
-		// 						if(buff.at(i) == ','){
-		// 							coop.appearTrans[ind].push(stoi(temp));
-		// 							temp = "";
-		// 						}
-		// 						else{
-		// 							temp += buff.at(i);
-		// 						}
-		// 					}
-		// 				}
-		// 			}
-		// 		}
 		// 		else if(status == 3){ // Div begining
 		// 			if(buff.at(0) != 'D'){
 		// 				coop.div_begining = stoi(buff);
 		// 			}
 		// 		}
-		// 		else{ // Occ
-		// 			if(buff.at(0) != 'O'){
-		// 				coop.occ.push(stoi(buff));
-		// 			}
-		// 		}
-		// 	}
-		// }
 
 		// for(int t = 0; t < nbThreads; t++)
 		// {
