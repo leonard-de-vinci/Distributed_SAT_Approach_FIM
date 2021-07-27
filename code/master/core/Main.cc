@@ -25,6 +25,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <time.h>
 
 #include <librdkafka/rdkafka.h>
 #include <bson/bson.h>
@@ -43,13 +44,23 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 using namespace Minisat;
 using namespace std;
 
-static void dr_msg_cb (rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void *opaque) {
-        if (rkmessage->err)
-            fprintf(stderr, "%% Message delivery failed: %s\n", rd_kafka_err2str(rkmessage->err));
-        else
-            fprintf(stderr, "%% Message delivered (%zd bytes, partition %"PRId32")\n", rkmessage->len, rkmessage->partition);
+char *gettime(){
+    time_t rawtime;
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    return asctime(timeinfo);
+}
 
-        /* The rkmessage is destroyed automatically by librdkafka */
+static void dr_msg_cb (rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void *opaque){
+    FILE *log = fopen("kafka.log", "a");
+    if (rkmessage->err)
+        fprintf(stderr, "%% Message delivery failed: %s\n", rd_kafka_err2str(rkmessage->err));
+    else
+        fprintf(log, "%s | %% Message delivered (%zd bytes, partition %"PRId32")\n", gettime(), rkmessage->len, rkmessage->partition);
+    fclose(log);
+
+    /* The rkmessage is destroyed automatically by librdkafka */
 }
 
 static void stop (int sig) {
@@ -76,7 +87,6 @@ int main(int argc, char** argv)
         IntOption    verb   ("MAIN", "verb",   "Verbosity level (0=silent, 1=some, 2=more).", 1, IntRange(0, 3));
         IntOption    cpu_lim("MAIN", "cpu-lim","Limit on CPU time allowed in seconds.\n", INT32_MAX, IntRange(0, INT32_MAX));
         IntOption    mem_lim("MAIN", "mem-lim","Limit on memory usage in megabytes.\n", INT32_MAX, IntRange(0, INT32_MAX));
-	    IntOption    ncores ("MAIN", "ncores","# threads.\n", 1,  IntRange(0, INT32_MAX));//IntRange(1, omp_get_num_procs()));
 	    IntOption    Freq    ("MAIN", "minSupport","# ....\n", 10,  IntRange(1, 100000000));//IntRange(1, omp_get_num_procs()));
 	
         parseOptions(argc, argv, true);
@@ -142,7 +152,16 @@ int main(int argc, char** argv)
             printf("|                                                                                                                       |\n"); 
         }
 
-        //Mongo
+        printf("\n");
+
+
+
+//		+-------------------------------------------------------+
+//		|                                                       |
+//		|                      MongoDB                          |
+//		|                                                       |
+//		+-------------------------------------------------------+
+
         const char *mongo_config_file = "mongo.config";
         const char *key;
         char *uri_string;
@@ -158,6 +177,8 @@ int main(int argc, char** argv)
         bson_t child;
         bson_error_t error;
         bson_oid_t oid;
+
+        fprintf(stderr, "Transmitting data to mongoDB database...\n");
 
         if (!(uri_string = mongo_config(mongo_config_file))){
             printf("Failed mongo config");
@@ -341,13 +362,21 @@ int main(int argc, char** argv)
         mongoc_client_destroy(client);
         mongoc_cleanup();
 
-        return 1;
+        printf("\n");
 
-        //Kafka
+
+
+//		+-------------------------------------------------------+
+//		|                                                       |
+//		|                       Kafka                           |
+//		|                                                       |
+//		+-------------------------------------------------------+
+
         rd_kafka_t *rk; //producer instance handle
         rd_kafka_conf_t *conf; //temporary configuration object
         char errstr[512]; //librdkafka API error reporting buffer
         char buff[512]; //Message value temporary buffer
+        FILE *log = fopen("kafka.log", "a");
 
         const char *topic = "guiding_path";
         const char *config_file = "librdkafka.config";
@@ -357,7 +386,7 @@ int main(int argc, char** argv)
 
         // Sets the boostraps servers to the ones indicated in this configuration file
         if (!(conf = read_config(config_file)))
-                return 1;
+            return 1;
 
         /* Set the delivery report callback.
          * This callback will be called once per message to inform
@@ -376,7 +405,11 @@ int main(int argc, char** argv)
          */
         if (!(rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr)))){
             fprintf(stderr, "%% Failed to create new producer: %s\n", errstr);
+            fprintf(log, "%s | %% Failed to create new producer: %s\n", gettime(), errstr);
             exit(1);
+        }
+        else{
+            fprintf(stderr, "%% Creating Kafka producer...\n");
         }
 
         /* Signal handler for clean shutdown */
@@ -422,6 +455,7 @@ int main(int argc, char** argv)
                      * Failed to *enqueue* message for producing.
                      */
                     fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topic, rd_kafka_err2str(err));
+                    fprintf(log, "%s | %% Failed to produce to topic %s: %s\n", gettime(), topic, rd_kafka_err2str(err));
 
                     if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
                         /* If the internal queue is full, wait for
@@ -438,7 +472,7 @@ int main(int argc, char** argv)
                     }
                 }
                 else{
-                    fprintf(stderr, "%% Enqueued message \"%s\" (%zd bytes) for topic %s\n", buff, len, topic);
+                    fprintf(log, "%s | %% Enqueued message \"%s\" (%zd bytes) for topic %s\n", gettime(), buff, len, topic);
                 }
             }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
 
@@ -462,11 +496,17 @@ int main(int argc, char** argv)
 
         /* If the output queue is still not empty there is an issue
          * with producing messages to the clusters. */
-        if (rd_kafka_outq_len(rk) > 0)
+        if (rd_kafka_outq_len(rk) > 0){
             fprintf(stderr, "%% %d message(s) were not delivered\n", rd_kafka_outq_len(rk));
+            fprintf(log, "%s | %% %d message(s) were not delivered\n", gettime(), rd_kafka_outq_len(rk));
+        }
+        else{
+            fprintf(stderr, "%% All messages were delivered\n");
+        }
 
         /* Destroy the producer instance */
         rd_kafka_destroy(rk);
+        fclose(log);
 
         vec<Lit> dummy;
 		lbool ret;
