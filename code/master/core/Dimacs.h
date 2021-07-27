@@ -75,9 +75,6 @@ static void parse_DIMACS_main(B& in, Cooperation* coop) {
 	
     }
 
-    for (int t = 0; t < coop->nbThreads; t++){
-        printf("%d\n", coop->solvers[t].nVars());
-    } 
     coop->buildGuidingPaths();
     
     
