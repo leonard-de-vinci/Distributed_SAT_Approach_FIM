@@ -326,6 +326,14 @@ int main(int argc, char** argv)
         mongoc_client_destroy(client);
         mongoc_cleanup();
 
+		for(int t = 0; t < nbThreads; t++)
+		{
+			items_temp.copyTo(coop.solvers[t].allItems);
+			for(int i = 0; i < items_temp.size(); i++)
+				coop.solvers[t].VecItems.push(var(items_temp[i]));
+			coop.solvers[t].nbTrans = coop.tabTransactions.size();
+		}
+
 		return 1;
 
 
@@ -448,14 +456,6 @@ int main(int argc, char** argv)
 		// 				coop.div_begining = stoi(buff);
 		// 			}
 		// 		}
-
-		// for(int t = 0; t < nbThreads; t++)
-		// {
-		// 	items.copyTo(coop.solvers[t].allItems);
-		// 	for(int i = 0; i < items.size(); i++)
-		// 		coop.solvers[t].VecItems.push(var(items[i]));
-		// 	coop.solvers[t].nbTrans = coop.tabTransactions.size();
-		// }
 	
 		if (coop.solvers[0].verbosity > 0){
         	printf(" ===============================================[ Problem Statistics ]==================================================\n");
