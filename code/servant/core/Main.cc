@@ -27,6 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <stdio.h>
 #include <unistd.h>
 #include <string>
+#include <time.h>
 
 #include <librdkafka/rdkafka.h>
 #include <bson/bson.h>
@@ -56,6 +57,12 @@ static int is_printable (const char *buf, size_t size){
                 return 0;
 
         return 1;
+}
+
+void delay(int duration){
+	clock_t start_time = clock();
+	while(clock() < start_time + duration)
+		;
 }
 
 // Main:
@@ -131,7 +138,14 @@ int main(int argc, char** argv)
     	if (argc == 1)
         	printf("Reading from standard input... Use '--help' for help.\n");
 
-		// Mongo
+
+
+//		+-------------------------------------------------------+
+//		|                                                       |
+//		|                      MongoDB                          |
+//		|                                                       |
+//		+-------------------------------------------------------+
+
 		const char *mongo_config_file = "mongo.config";
 		const char *key;
 		const bson_t *config, *items, *tab_transactions, *appear_trans, *occ;
@@ -232,11 +246,20 @@ int main(int argc, char** argv)
 		mongoc_cursor_destroy(cursor);
 		mongoc_collection_destroy(collection);
 
+		if(n_items != items_temp.size()){
+			fprintf(stderr, "failed to retrieve all items");
+			return EXIT_FAILURE;
+		}
 		printf("Items received\n");
 
 		//Tab Transactions
 		collection = mongoc_client_get_collection(client, "dataset", "tab_transactions");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		do
+		{
+			delay(500);
+		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != n_trans);
 
 		while(mongoc_cursor_next(cursor, &tab_transactions)){
 			if(bson_iter_init(&iter, tab_transactions)){
@@ -270,6 +293,11 @@ int main(int argc, char** argv)
 		//Appear Trans
 		collection = mongoc_client_get_collection(client, "dataset", "appear_trans");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		do
+		{
+			delay(500);
+		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != n_appear_trans);
 
 		while(mongoc_cursor_next(cursor, &appear_trans)){
 			if(bson_iter_init(&iter, appear_trans)){
@@ -317,6 +345,10 @@ int main(int argc, char** argv)
 			}
 		}
 
+		if(n_occ != coop.occ.size()){
+			fprintf(stderr, "failed to retrieve all items");
+			return EXIT_FAILURE;
+		}
 		printf("Occ received\n");
 
 		bson_destroy(query);
@@ -334,10 +366,14 @@ int main(int argc, char** argv)
 			coop.solvers[t].nbTrans = coop.tabTransactions.size();
 		}
 
-		return 1;
 
 
-		// Kafka
+//		+-------------------------------------------------------+
+//		|                                                       |
+//		|                       Kafka                           |
+//		|                                                       |
+//		+-------------------------------------------------------+
+
 		rd_kafka_t *rk; //consumer instance handle
         rd_kafka_conf_t *conf; //temporary configuration object
 		rd_kafka_resp_err_t err; //librdkafka API error code
@@ -351,7 +387,7 @@ int main(int argc, char** argv)
 
 		// Sets the boostraps servers to the ones indicated in this configuration file
         if (!(conf = read_config(config_file)))
-                return 1;
+            return 1;
 		
 		/*
          * Create consumer instance.
