@@ -6,3 +6,5 @@ code/.DS_Store
 docker_images
 code/master/core/kafka.log
 code/servant/core/models.txt
+code/servant/core/save
+code/servant/core/kafka.log
