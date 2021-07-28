@@ -46,6 +46,13 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 using namespace Minisat;
 using namespace std;
 
+char *gettime(){
+    time_t rawtime;
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    return asctime(timeinfo);
+}
 
 static void stop (int sig){
         run = 0;
@@ -384,6 +391,9 @@ int main(int argc, char** argv)
         rd_kafka_conf_t *conf; //temporary configuration object
 		rd_kafka_resp_err_t err; //librdkafka API error code
         char errstr[512]; //librdkafka API error reporting buffer
+		FILE *log = fopen("kafka.log", "a");
+		char *message;
+		vec<int> guiding_path;
 
         const char *topics = "guiding_path";           /* Argument: list of topics to subscribe to */
         int topic_cnt = 1;           /* Number of topics to subscribe to */
@@ -469,19 +479,27 @@ int main(int argc, char** argv)
             }
 
             /* Proper message. */
-            printf("Message on %s [%"PRId32"] at offset %"PRId64":\n", rd_kafka_topic_name(rkm->rkt), rkm->partition, rkm->offset);
+            fprintf(log, "%s | %%Message on %s [%"PRId32"] at offset %"PRId64":\n", gettime(), rd_kafka_topic_name(rkm->rkt), rkm->partition, rkm->offset);
 
-            /* Print the message key. */
-            if ((const char *)rkm->key && is_printable((const char *)rkm->key, rkm->key_len))
-                printf(" Key: %.*s\n", (int)rkm->key_len, (const char *)rkm->key);
-            else if ((const char *)rkm->key)
-        		printf(" Key: (%d bytes)\n", (int)rkm->key_len);
+            // /* Print the message key. */
+            // if((const char *)rkm->key && is_printable((const char *)rkm->key, rkm->key_len))
+            //     printf(" Key: %.*s\n", (int)rkm->key_len, (const char *)rkm->key);
+            // else if((const char *)rkm->key)
+        	// 	printf(" Key: (%d bytes)\n", (int)rkm->key_len);
 
             /* Print the message value/payload. */
-            if ((const char *)rkm->payload && is_printable((const char *)rkm->payload, rkm->len))
-                printf(" Value: %.*s\n", (int)rkm->len, (const char *)rkm->payload);
-            else if ((const char *)rkm->payload)
-                printf(" Value: (%d bytes)\n", (int)rkm->len);
+            if((const char *)rkm->payload && is_printable((const char *)rkm->payload, rkm->len)){
+				message = (char *) malloc((int)rkm->len + 1);
+				sprintf(message, (const char *)rkm->payload);
+			}
+                // printf(" Value: %.*s\n", (int)rkm->len, (const char *)rkm->payload);
+            // else if((const char *)rkm->payload)
+            //     printf(" Value: (%d bytes)\n", (int)rkm->len);
+
+			if(strcmp(message, "end") != 0)
+				guiding_path.push(atoi(message));
+			else
+				run = false;
 
             rd_kafka_message_destroy(rkm);
         }
@@ -493,11 +511,7 @@ int main(int argc, char** argv)
         /* Destroy the consumer */
         rd_kafka_destroy(rk);
 
-		// 		else if(status == 3){ // Div begining
-		// 			if(buff.at(0) != 'D'){
-		// 				coop.div_begining = stoi(buff);
-		// 			}
-		// 		}
+		coop.div_begining = guiding_path[0];
         
         vec<Lit> dummy;
 		lbool ret;
@@ -505,13 +519,13 @@ int main(int argc, char** argv)
 	
 		// launch threads in Parallel 	
 
-	#pragma omp parallel
-	{
-	  	int t = omp_get_thread_num();
-	  	coop.start = true;
-	  	coop.solvers[t].EncodeDB(&coop);
-	  	ret = coop.solvers[t].solve_(&coop);
-	}
+	// #pragma omp parallel
+	// {
+	//   	int t = omp_get_thread_num();
+	//   	coop.start = true;
+	//   	coop.solvers[t].EncodeDB(&coop);
+	//   	ret = coop.solvers[t].solve_(&coop);
+	// }
 	
 	
 		int cpt = 0;

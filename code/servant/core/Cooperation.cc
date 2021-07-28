@@ -71,9 +71,7 @@ bool Cooperation::addTransactions(vec<Lit>& ps)
     |________________________________________________________________________________________________@*/
 
   void Cooperation::buildGuidingPaths(){
-
     vec<Lit> items;
-
 
     for(int i = 0; i < solvers[0].nVars(); i++){
       items.push(mkLit(i, false));
@@ -85,16 +83,13 @@ bool Cooperation::addTransactions(vec<Lit>& ps)
       occ.push(0);
     }
 
-    
-    
     for( int i = 0; i < tabTransactions.size(); i++){
       for(int j = 0;j< tabTransactions[i].size(); j++){
-	Var v = var(tabTransactions[i][j]);
-	occ[v]++;
-	appearTrans[v].push(i);
+        Var v = var(tabTransactions[i][j]);
+        occ[v]++;
+        appearTrans[v].push(i);
       }
     }
-
 
     sort(items, reduceDB_lt(occ));
     
@@ -105,21 +100,20 @@ bool Cooperation::addTransactions(vec<Lit>& ps)
     int nb = 0;
     for(int i = 0; i < items.size(); i++)
       if(occ[var(items[i])] == 0)
-	nb++;
-
+	      nb++;
 
     int total = 0;
     int all_items = items.size();
     for(int  i = 0; i < items.size(); i++)
       if(occ[var(items[i])] < min_supp)
-	all_items--;
+	      all_items--;
 
     for( int i = 0; i < tabTransactions.size(); i++){
       int u = 0;
       for(int j = 0;j< tabTransactions[i].size(); j++){
         Var v = var(tabTransactions[i][j]);
         if (occ[v] >= min_supp)
-	  u++;
+	        u++;
       }
       total += 2*(all_items - u+1);
     }
@@ -130,9 +124,9 @@ bool Cooperation::addTransactions(vec<Lit>& ps)
     div_begining = 0;
     for(int  i = 0; i < items.size(); i++)
       if(occ[var(items[i])] < min_supp)
-	div_begining++;
+	      div_begining++;
       else
-	break;
+	      break;
 
     printf("----------------------------------------------------------------------------\n");
     printf("              |                  |--<>- items            : %10d      | \n",items.size());
@@ -143,14 +137,13 @@ bool Cooperation::addTransactions(vec<Lit>& ps)
     printf("                                 |--<>- min support      : %10d      |\n", min_supp);
     printf("                                 |                                         | \n");
     printf("--------------------------------------------------------------------------\n\n");
-    
 
     //copy the sorted items to each threads
-      for(int t = 0; t < nbThreads; t++){
-	for(int i = 0; i < items.size(); i++)	
-	  solvers[t].VecItems.push(var(items[i]));
-	solvers[t].nbTrans = tabTransactions.size();
-      }
+    for(int t = 0; t < nbThreads; t++){
+      for(int i = 0; i < items.size(); i++)	
+        solvers[t].VecItems.push(var(items[i]));
+      solvers[t].nbTrans = tabTransactions.size();
+    }
       
     printf("<> start enumerating....\n");
   }

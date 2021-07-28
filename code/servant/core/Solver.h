@@ -60,12 +60,12 @@ public:
     // Solving:
     //
     bool    simplify     ();                        // Removes already satisfied clauses.
-    bool    solve        (const vec<Lit>& assumps, Cooperation* coop); // Search for a model that respects a given set of assumptions.
-    lbool   solveLimited (const vec<Lit>& assumps, Cooperation* coop); // Search for a model that respects a given set of assumptions (With resource constraints).
-    bool    solve        (Cooperation* coop);                        // Search without assumptions.
-    bool    solve        (Lit p, Cooperation* coop);                   // Search for a model that respects a single assumption.
-    bool    solve        (Lit p, Lit q, Cooperation* coop);            // Search for a model that respects two assumptions.
-    bool    solve        (Lit p, Lit q, Lit r, Cooperation* coop);     // Search for a model that respects three assumptions.
+    bool    solve        (const vec<Lit>& assumps, Cooperation* , int guiding_path); // Search for a model that respects a given set of assumptions.
+    lbool   solveLimited (const vec<Lit>& assumps, Cooperation* coop, int guiding_path); // Search for a model that respects a given set of assumptions (With resource constraints).
+    bool    solve        (Cooperation* coop, int guiding_path);                        // Search without assumptions.
+    bool    solve        (Lit p, Cooperation* coop, int guiding_path);                   // Search for a model that respects a single assumption.
+    bool    solve        (Lit p, Lit q, Cooperation* coop, int guiding_path);            // Search for a model that respects two assumptions.
+    bool    solve        (Lit p, Lit q, Lit r, Cooperation* coop, int guiding_path);     // Search for a model that respects three assumptions.
     bool    okay         () const;                  // FALSE means solver is in a conflicting state
 
     void    toDimacs     (FILE* f, const vec<Lit>& assumps);            // Write CNF to file in DIMACS-format.
@@ -176,7 +176,7 @@ public:
 	  
     vec<Lit>            assumptions;      // Current set of assumptions provided to solve by the user.
 
-    lbool    solve_           (Cooperation* coop);                                                      // Main solve method (assumptions given in 'assumptions').s
+    lbool    solve_           (Cooperation* coop, int guiding_path);                                                      // Main solve method (assumptions given in 'assumptions').s
     int   nbModels;
     int   Freq;
     int   nbTrans; //Number of transactions.
@@ -244,7 +244,6 @@ public:
     vec<char>           isTrans;
     int                 nbFalseTrans;
     vec<CRef>           DBclauses;
-    int                 ind;
    // vec<char>           seen;
 
     vec<int>            seenItem;
@@ -294,7 +293,7 @@ public:
     bool     enqueue          (Lit p, CRef from = CRef_Undef);                         // Test if fact 'p' contradicts current state, enqueue otherwise.
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
     bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
-    lbool    search           (int nof_conflicts, Cooperation* coop);                                     // Search for a given number of conflicts.
+    lbool    search           (int nof_conflicts, Cooperation* coop, int guiding_path);                                     // Search for a given number of conflicts.
 
     void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
     void     removeSatisfied  (vec<CRef>& cs);                                         // Shrink 'cs' to contain only non-satisfied clauses.
@@ -420,12 +419,12 @@ inline bool     Solver::withinBudget() const {
 // FIXME: after the introduction of asynchronous interrruptions the solve-versions that return a
 // pure bool do not give a safe interface. Either interrupts must be possible to turn off here, or
 // all calls to solve must return an 'lbool'. I'm not yet sure which I prefer.
- inline bool     Solver::solve         (Cooperation* coop)                    { budgetOff(); assumptions.clear(); return solve_(coop) == l_True; }
-inline bool     Solver::solve         (Lit p, Cooperation* coop)               { budgetOff(); assumptions.clear(); assumptions.push(p); return solve_(coop) == l_True; }
-inline bool     Solver::solve         (Lit p, Lit q, Cooperation* coop)        { budgetOff(); assumptions.clear(); assumptions.push(p); assumptions.push(q); return solve_(coop) == l_True; }
-inline bool     Solver::solve         (Lit p, Lit q, Lit r, Cooperation* coop) { budgetOff(); assumptions.clear(); assumptions.push(p); assumptions.push(q); assumptions.push(r); return solve_(coop) == l_True; }
-inline bool     Solver::solve         (const vec<Lit>& assumps, Cooperation* coop){ budgetOff(); assumps.copyTo(assumptions); return solve_(coop) == l_True; }
-inline lbool    Solver::solveLimited  (const vec<Lit>& assumps, Cooperation* coop){ assumps.copyTo(assumptions); return solve_(coop); }
+ inline bool     Solver::solve         (Cooperation* coop, int guiding_path)                    { budgetOff(); assumptions.clear(); return solve_(coop, guiding_path) == l_True; }
+inline bool     Solver::solve         (Lit p, Cooperation* coop, int guiding_path)               { budgetOff(); assumptions.clear(); assumptions.push(p); return solve_(coop, guiding_path) == l_True; }
+inline bool     Solver::solve         (Lit p, Lit q, Cooperation* coop, int guiding_path)        { budgetOff(); assumptions.clear(); assumptions.push(p); assumptions.push(q); return solve_(coop, guiding_path) == l_True; }
+inline bool     Solver::solve         (Lit p, Lit q, Lit r, Cooperation* coop, int guiding_path) { budgetOff(); assumptions.clear(); assumptions.push(p); assumptions.push(q); assumptions.push(r); return solve_(coop, guiding_path) == l_True; }
+inline bool     Solver::solve         (const vec<Lit>& assumps, Cooperation* coop, int guiding_path){ budgetOff(); assumps.copyTo(assumptions); return solve_(coop, guiding_path) == l_True; }
+inline lbool    Solver::solveLimited  (const vec<Lit>& assumps, Cooperation* coop, int guiding_path){ assumps.copyTo(assumptions); return solve_(coop, guiding_path); }
 inline bool     Solver::okay          ()      const   { return ok; }
 
 inline void     Solver::toDimacs     (const char* file){ vec<Lit> as; toDimacs(file, as); }
