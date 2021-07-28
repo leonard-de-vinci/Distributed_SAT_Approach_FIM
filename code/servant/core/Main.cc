@@ -91,7 +91,6 @@ int main(int argc, char** argv)
 
 		double initial_time = cpuTime();
 
-		
 		int nbThreads   = ncores;	
 		Cooperation coop(nbThreads);
 	
@@ -134,9 +133,8 @@ int main(int argc, char** argv)
                 	printf("WARNING! Could not set resource limit: Virtual memory.\n");
         	}
 		}
-        
-    	if (argc == 1)
-        	printf("Reading from standard input... Use '--help' for help.\n");
+		
+		printf("\n");
 
 
 
@@ -148,10 +146,10 @@ int main(int argc, char** argv)
 
 		const char *mongo_config_file = "mongo.config";
 		const char *key;
-		const bson_t *config, *items, *tab_transactions, *appear_trans, *occ;
+		const bson_t *config, *items, *tab_transactions, *appear_trans;
 		const bson_value_t *value;
         char *uri_string;
-		int n_items, n_trans, n_appear_trans, n_occ, var_;
+		int n_items, n_trans, n_appear_trans, var_;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
         mongoc_database_t *database;
@@ -208,8 +206,6 @@ int main(int argc, char** argv)
 								n_trans = value->value.v_int32;
 							else if(strcmp(key, "appear_trans") == 0)
 								n_appear_trans = value->value.v_int32;
-							else if(strcmp(key, "occ") == 0)
-								n_occ = value->value.v_int32;
 						}
 					}
 				}
@@ -323,37 +319,8 @@ int main(int argc, char** argv)
 
 		printf("Appear trans received\n");
 
-		//Occ
-		collection = mongoc_client_get_collection(client, "dataset", "occ");
-		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
-
-		while(mongoc_cursor_next(cursor, &occ)){
-			if(bson_iter_init(&iter, occ)){
-				while(bson_iter_next(&iter)){
-					key = bson_iter_key(&iter);
-					if(bson_iter_init_find(&iter, occ, key) && BSON_ITER_HOLDS_ARRAY(&iter) && bson_iter_recurse(&iter, &child)){
-						while(bson_iter_next(&child)){
-							value = bson_iter_value(&child);
-							if(!(value->value_type == BSON_TYPE_INT32)){
-								fprintf(stderr, "failed to parse document: %s in collection occ", key);
-								return EXIT_FAILURE;
-							}
-							coop.occ.push(value->value.v_int32);
-						}
-					}
-				}
-			}
-		}
-
-		if(n_occ != coop.occ.size()){
-			fprintf(stderr, "failed to retrieve all items");
-			return EXIT_FAILURE;
-		}
-		printf("Occ received\n");
-
+		
 		bson_destroy(query);
-		mongoc_cursor_destroy(cursor);
-		mongoc_collection_destroy(collection);
 		mongoc_database_destroy(database);
         mongoc_client_destroy(client);
         mongoc_cleanup();
@@ -365,6 +332,45 @@ int main(int argc, char** argv)
 				coop.solvers[t].VecItems.push(var(items_temp[i]));
 			coop.solvers[t].nbTrans = coop.tabTransactions.size();
 		}
+
+		printf("\n");
+
+
+
+		if (coop.solvers[0].verbosity > 0){
+        	printf(" ===============================================[ Problem Statistics ]==================================================\n");
+        	printf("|                                                                                                                       |\n");
+        	printf("|                                                                                                                       |\n"); }
+        
+
+		printf("<> instance    : %s\n", "../data.txt");
+		printf("<> nbThreads   : %d \n\n", nbThreads);
+	
+		omp_set_num_threads(nbThreads);
+		
+     	FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
+        
+        if (coop.solvers[0].verbosity > 0){
+		//  printf("|  Number of variables:  %12d                                                                                   |\n", coop.solvers[0].nVars());
+		}
+        
+        double parsed_time = cpuTime();
+        if (coop.solvers[0].verbosity > 0){
+            printf("|  Parse time:           %12.2f s                                                                                 |\n", parsed_time - initial_time);
+            printf("|                                                                                                                       |\n"); }
+
+
+		if (!coop.solvers[0].simplify()){
+	  		if (res != NULL)
+				fprintf(res, "UNSAT\n"), fclose(res);
+	  		if (coop.solvers[0].verbosity > 0){
+	    		printf("========================================================================================================================\n");
+	    		printf("Solved by unit propagation\n");
+	    		printf("\n"); 
+			}
+	  		printf("UNSATISFIABLE\n");
+	  		exit(20);
+       	}
 
 
 
@@ -492,39 +498,6 @@ int main(int argc, char** argv)
 		// 				coop.div_begining = stoi(buff);
 		// 			}
 		// 		}
-	
-		if (coop.solvers[0].verbosity > 0){
-        	printf(" ===============================================[ Problem Statistics ]==================================================\n");
-        	printf("|                                                                                                                       |\n");
-        	printf("|                                                                                                                       |\n"); }
-        
-
-		printf("<> instance    : %s\n", "../data.txt");
-		printf("<> nbThreads   : %d \n\n", nbThreads);
-	
-		omp_set_num_threads(nbThreads);
-		
-     	FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
-        
-        if (coop.solvers[0].verbosity > 0){
-		//  printf("|  Number of variables:  %12d                                                                                   |\n", coop.solvers[0].nVars());
-		}
-        
-        double parsed_time = cpuTime();
-        if (coop.solvers[0].verbosity > 0){
-            printf("|  Parse time:           %12.2f s                                                                                 |\n", parsed_time - initial_time);
-            printf("|                                                                                                                       |\n"); }
-
-
-		if (!coop.solvers[0].simplify()){
-	  		if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
-	  		if (coop.solvers[0].verbosity > 0){
-	    		printf("========================================================================================================================\n");
-	    		printf("Solved by unit propagation\n");
-	    		printf("\n"); }
-	  		printf("UNSATISFIABLE\n");
-	  		exit(20);
-       	}
         
         vec<Lit> dummy;
 		lbool ret;

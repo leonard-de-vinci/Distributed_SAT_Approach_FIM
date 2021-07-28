@@ -222,10 +222,6 @@ int main(int argc, char** argv)
         BSON_APPEND_INT32(&child, "number", coop.appearTrans.size());
         bson_append_document_end(document, &child);
 
-        BSON_APPEND_DOCUMENT_BEGIN(document, "occ", &child);
-        BSON_APPEND_INT32(&child, "number", coop.occ.size());
-        bson_append_document_end(document, &child);
-
         if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
             fprintf (stderr, "%s\n", error.message);
         }
@@ -332,34 +328,6 @@ int main(int argc, char** argv)
             printf("Appear trans sent\n");
 
         mongoc_collection_destroy(collection);
-
-
-
-        // Occ
-        collection = mongoc_client_get_collection(client, "dataset", "occ");
-        document = bson_new();
-        bson_oid_init(&oid, NULL);
-        BSON_APPEND_OID (document, "_id", &oid);
-        
-        BSON_APPEND_ARRAY_BEGIN(document, "occ", &child);
-        for(uint32_t i = 0; (int) i < coop.occ.size(); i++){
-            sprintf(temp, "%d", coop.occ[i]);
-            keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
-            bson_append_int32(&child, key, (int) keylen, coop.occ[i]);
-        }
-        bson_append_array_end(document, &child);
-
-        if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-            fprintf (stderr, "%s\n", error.message);
-            sent = false;
-        }
-
-        if(sent)
-            printf("Occ sent\n");
-
-        bson_destroy(document);
-        mongoc_collection_destroy(collection);
-
         mongoc_database_destroy(database);
         mongoc_client_destroy(client);
         mongoc_cleanup();
