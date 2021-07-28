@@ -4,3 +4,5 @@ code/servant/.DS_Store
 .DS_Store
 code/.DS_Store
 docker_images
+code/master/core/kafka.log
+code/servant/core/models.txt
