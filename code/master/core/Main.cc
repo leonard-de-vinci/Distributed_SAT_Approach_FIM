@@ -389,9 +389,15 @@ int main(int argc, char** argv)
 
         //Guiding_Path
 
-        for(int i = coop.div_begining; run && i < coop.items.size(); i++){
-            sprintf(buff, "%d", i);
-            len = strlen(buff);
+        for(int i = coop.div_begining; run && i <= coop.items.size(); i++){
+            if(i == coop.items.size()){
+                sprintf(buff, "end");
+                len = strlen(buff);
+            }
+            else{
+                sprintf(buff, "%d", i);
+                len = strlen(buff);
+            }
 
             /*
              * Send/Produce message.
