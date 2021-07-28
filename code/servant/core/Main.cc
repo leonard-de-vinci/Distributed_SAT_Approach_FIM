@@ -350,7 +350,7 @@ int main(int argc, char** argv)
         	printf("|                                                                                                                       |\n"); }
         
 
-		printf("<> instance    : %s\n", "../data.txt");
+		printf("<> instance    : %s\n", "");
 		printf("<> nbThreads   : %d \n\n", nbThreads);
 	
 		omp_set_num_threads(nbThreads);
@@ -393,7 +393,6 @@ int main(int argc, char** argv)
         char errstr[512]; //librdkafka API error reporting buffer
 		FILE *log = fopen("kafka.log", "a");
 		char *message;
-		vec<int> guiding_path;
 
         const char *topics = "guiding_path";           /* Argument: list of topics to subscribe to */
         int topic_cnt = 1;           /* Number of topics to subscribe to */
@@ -497,7 +496,7 @@ int main(int argc, char** argv)
             //     printf(" Value: (%d bytes)\n", (int)rkm->len);
 
 			if(strcmp(message, "end") != 0)
-				guiding_path.push(atoi(message));
+				coop.guiding_path.push_back(atoi(message));
 			else
 				run = false;
 
@@ -511,7 +510,10 @@ int main(int argc, char** argv)
         /* Destroy the consumer */
         rd_kafka_destroy(rk);
 
-		coop.div_begining = guiding_path[0];
+		for(int i = 0; i < nbThreads; i++)
+			coop.guiding_path.push_back(coop.guiding_path.at(coop.guiding_path.size() - 1) + 1);
+
+		coop.div_begining = coop.guiding_path[0];
         
         vec<Lit> dummy;
 		lbool ret;
@@ -519,13 +521,13 @@ int main(int argc, char** argv)
 	
 		// launch threads in Parallel 	
 
-	// #pragma omp parallel
-	// {
-	//   	int t = omp_get_thread_num();
-	//   	coop.start = true;
-	//   	coop.solvers[t].EncodeDB(&coop);
-	//   	ret = coop.solvers[t].solve_(&coop);
-	// }
+	#pragma omp parallel
+	{
+	  	int t = omp_get_thread_num();
+	  	coop.start = true;
+	  	coop.solvers[t].EncodeDB(&coop);
+	  	ret = coop.solvers[t].solve_(&coop);
+	}
 	
 	
 		int cpt = 0;

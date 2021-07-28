@@ -30,6 +30,7 @@
 
 
 using namespace Minisat;
+using namespace std;
 
 //=================================================================================================
 // Options:
@@ -669,15 +670,20 @@ void Solver::simplifier(){
  |    all variables are decision variables, this means that the clause set is satisfiable. 'l_False'
  |    if the clause set is unsatisfiable. 'l_Undef' if the bound on number of conflicts is reached.
  |________________________________________________________________________________________________@*/
-lbool Solver::search(int nof_conflicts, Cooperation* coop, int guiding_path)
+lbool Solver::search(int nof_conflicts, Cooperation* coop)
 {
+    //FILE *test = fopen("test.txt", "a");
   //assert(ok);
    // int       backtrack_level;
     int         conflictC = 0;
     vec<Lit>    learnt_clause;
     lbool       answer;
     starts++;
-    guiding_path += coop->nbThreads; 	
+
+    //fprintf(test, "Solver %d | A | ind: %d\n", threadId, ind);
+    ind = coop->guiding_path[0];
+    coop->guiding_path.erase(coop->guiding_path.begin());
+    //fprintf(test, "Solver %d | B | ind: %d\n", threadId, ind); 	
     
     for (;;){
     
@@ -701,21 +707,30 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop, int guiding_path)
             
 	div_section:;
 	  if (diviser_state == 0)
-	    if(guiding_path < allItems.size()) {
+	    if(ind < allItems.size()) {
 	      ok = true;
 	      reduceDB();
 
-	      if((guiding_path < allItems.size())  && !encodeGuidingPath(coop, guiding_path))
-		      continue;
+	      while((ind < allItems.size())  && !encodeGuidingPath(coop, ind+1)){
+          ind = coop->guiding_path[0];
+          coop->guiding_path.erase(coop->guiding_path.begin());
+          //fprintf(test, "Solver %d | C | ind: %d\n", threadId, ind);
+        }
 	      
-	      if(guiding_path >=  allItems.size())
-		      return l_False;
+	      if(ind >=  allItems.size()){
+          //fclose(test);
+          return l_False;
+        }
 		      
 	      diviser_state = 1;
-	      guiding_path += coop->nbThreads;
+        ind = coop->guiding_path[0];
+        coop->guiding_path.erase(coop->guiding_path.begin());
+        //fprintf(test, "Solver %d | D | ind: %d\n", threadId, ind);
 	      goto Prop;
-	    }else
+	    }else{
+        //fclose(test);
 	      return l_False;
+      }
 	  
 	  if(nbTrans-nbFalseTrans < coop->min_supp){
 	    conflicts++;
@@ -786,6 +801,8 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop, int guiding_path)
 	  uncheckedEnqueue(next);
         }
     }
+
+  //fclose(test);
 }
 
 
@@ -832,7 +849,7 @@ static double luby(double y, int x){
 }
 
 // NOTE: assumptions passed in member-variable 'assumptions'.
-lbool Solver::solve_(Cooperation* coop, int guiding_path)
+lbool Solver::solve_(Cooperation* coop) //add here a int guiding_path parameter
 {
   model.clear();
   conflict.clear();
@@ -841,11 +858,14 @@ lbool Solver::solve_(Cooperation* coop, int guiding_path)
   nbClauses = 0;
   
   if (!ok) return l_False;
-  guiding_path += threadId;
+  ind = coop->guiding_path[0];
+  coop->guiding_path.erase(coop->guiding_path.begin());
 
-  if((guiding_path < allItems.size() && !encodeGuidingPath(coop, guiding_path)))
-    ;
-  if(guiding_path >=  allItems.size())
+  while((ind < allItems.size())  && !encodeGuidingPath(coop, ind+1)){
+    ind = coop->guiding_path[0];
+    coop->guiding_path.erase(coop->guiding_path.begin());
+  }
+  if(ind >=  allItems.size())
     return l_False;
   
   nbModels = 0;
@@ -856,14 +876,13 @@ lbool Solver::solve_(Cooperation* coop, int guiding_path)
   max_learnts               = nClauses() * learntsize_factor;
   learntsize_adjust_confl   = learntsize_adjust_start_confl;
   learntsize_adjust_cnt     = (int)learntsize_adjust_confl;
-  lbool   status            = l_Undef;
-  
+  lbool   status            = l_Undef;  
   
   // Search:
   int curr_restarts = 0;
   while (status == l_Undef){
     double rest_base = luby_restart ? luby(restart_inc, curr_restarts) : pow(restart_inc, curr_restarts);
-    status = search(rest_base * restart_first, coop, guiding_path);
+    status = search(rest_base * restart_first, coop);
     if (!withinBudget()) break;
     curr_restarts++;
   }
@@ -914,7 +933,7 @@ void Solver::EncodeDB(Cooperation* coop){
 bool Solver::encodeGuidingPath(Cooperation* coop, int index){
 
   items.clear();
-  Lit p = allItems[index];
+  Lit p = allItems[index-1];
   if(coop->appearTrans[var(p)].size() < coop->min_supp)
     return false;
 
@@ -923,7 +942,7 @@ bool Solver::encodeGuidingPath(Cooperation* coop, int index){
 
   //propagate at level 0 the guding path literals
   int i = 0;
-  for(i = 0; i < index; i++) {
+  for(i = 0; i < index-1; i++) {
     uncheckedEnqueue(~allItems[i]);
     seen[var(allItems[i])] = 1;
     useless[var(allItems[i])] = 1;
@@ -960,7 +979,7 @@ bool Solver::encodeGuidingPath(Cooperation* coop, int index){
   
   for(int i = 0; i < items.size(); i++)
     seen[var(items[i])]   = 0;
-  for(int i = 0; i <= index; i++)
+  for(int i = 0; i < index; i++)
     seen[var(allItems[i])] = 0;
 
   int valeur = 0;
@@ -1013,7 +1032,7 @@ bool Solver::encodeGuidingPath(Cooperation* coop, int index){
   order_heap.build(vs);
   
   // add closure constraints of items in database of D under the scope of p
-  for(int i = coop->div_begining; i < index; i++){ //BE CAREFUL START AT div_begining ADDED
+  for(int i = coop->div_begining; i < index-1; i++){ //BE CAREFUL START AT div_begining ADDED
     Lit q = allItems[i];
 
     if(transClos[var(q)].size() == current_DB_size)
