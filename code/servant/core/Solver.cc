@@ -772,7 +772,7 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
 	    if (next == lit_Undef){
 
 	      nbModels++;
-	      AfficheModel(trail);
+	      AfficheModel(trail, coop);
 	      if(verbosity >= 3){
 		printf("->  ");
 		for(int i = 0; i < VecItems.size(); i++)
@@ -1200,19 +1200,15 @@ void Solver::echanger(vec<int>& tab, int x, int y)
 
 //=================================================================================================
 
-  void Solver::AfficheModel(vec<Lit>& lits){
-  
-    FILE* fichier = NULL;
-    fichier = fopen("models.txt", "a");
-    if (fichier != NULL)
-    {
-      for(int i = 0; i < lits.size(); i++)  
-      {
-        if(!isTrans[var(lits[i])]&& !sign(lits[i]))
-        fprintf(fichier, "%s%d ", sign(lits[i]) ? "-" : "", var(lits[i])+1);
-      }
-      fprintf(fichier, "\n");
-      fclose(fichier);
+  void Solver::AfficheModel(vec<Lit>& lits, Cooperation* coop){
+    int last = 0;
+
+    coop->models.push();
+    last = coop->models.size() - 1;
+
+    for(int i = 0; i < lits.size(); i++){
+      if(!isTrans[var(lits[i])] && !sign(lits[i]))
+        coop->models[last].push(var(lits[i]) + 1);
     }
   }
 

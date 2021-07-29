@@ -285,21 +285,3 @@ char *mongo_config(const char *config_file){
 
         return uri_string;
 }
-
-char *gettime(){
-        time_t rawtime;
-        struct tm *timeinfo;
-        time(&rawtime);
-        timeinfo = localtime(&rawtime);
-        return asctime(timeinfo);
-}
-
-static void stop (int sig){
-        run = 0;
-}
-
-void delay(int duration){
-        clock_t start_time = clock();
-	while(clock() < start_time + duration)
-		;
-}

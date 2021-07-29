@@ -47,29 +47,29 @@ using namespace Minisat;
 using namespace std;
 
 char *gettime(){
-    time_t rawtime;
-    struct tm *timeinfo;
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    return asctime(timeinfo);
-}
-
-static void stop (int sig){
-        run = 0;
-}
-
-static int is_printable (const char *buf, size_t size){
-        for (size_t i = 0 ; i < size ; i++)
-            if (!isprint((int)buf[i]))
-                return 0;
-
-        return 1;
+        time_t rawtime;
+        struct tm *timeinfo;
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+        return asctime(timeinfo);
 }
 
 void delay(int duration){
-	clock_t start_time = clock();
+        clock_t start_time = clock();
 	while(clock() < start_time + duration)
 		;
+}
+
+static int is_printable (const char *buf, size_t size){
+    for (size_t i = 0 ; i < size ; i++)
+        if (!isprint((int)buf[i]))
+            return 0;
+
+    return 1;
+}
+
+static void stop (int sig){
+    run = 0;
 }
 
 // Main:
@@ -163,7 +163,10 @@ int main(int argc, char** argv)
         mongoc_collection_t *collection;
 		mongoc_cursor_t *cursor;
         bson_t *query;
+		bson_t *document;
+		bson_t child2;
         bson_error_t error;
+		bson_oid_t oid;
 		bson_iter_t iter, child;
 
 		vec<Lit> items_temp;
@@ -187,7 +190,33 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
 
-        mongoc_client_set_appname (client, "database-pull");
+        mongoc_client_set_appname (client, "solver");
+
+		//Solver Config
+
+		database = mongoc_client_get_database(client, "solvers");
+		collection = mongoc_client_get_collection(client, "solvers", "config");
+		document = bson_new();
+        bson_oid_init(&oid, NULL);
+        BSON_APPEND_OID(document, "_id", &oid);
+
+		BSON_APPEND_DOCUMENT_BEGIN(document, "solver", &child2);
+        BSON_APPEND_INT32(&child2, "ncores", nbThreads);
+        bson_append_document_end(document, &child2);
+
+		if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+            fprintf (stderr, "%s\n", error.message);
+        }
+        else{
+            printf("Solver configuration sent\n");
+        }
+
+        bson_destroy(document);
+        mongoc_collection_destroy(collection);
+		mongoc_database_destroy(database);
+
+		//Database pull
+
         database = mongoc_client_get_database(client, "dataset");
 		query = bson_new();
 
@@ -195,6 +224,13 @@ int main(int argc, char** argv)
 		// Config
 		collection = mongoc_client_get_collection(client, "dataset", "config");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		delay(1000);
+
+		do
+		{
+			delay(500);
+		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != 1);
 
 		while(mongoc_cursor_next(cursor, &config)){
 			if(bson_iter_init(&iter, config)){
@@ -222,11 +258,16 @@ int main(int argc, char** argv)
 		mongoc_cursor_destroy(cursor);
 		mongoc_collection_destroy(collection);
 
-		printf("Config received\n");
+		printf("Database configuration received\n");
 
 		//Items
 		collection = mongoc_client_get_collection(client, "dataset", "items");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		do
+		{
+			delay(500);
+		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != 1);
 
 		while(mongoc_cursor_next(cursor, &items)){
 			if(bson_iter_init(&iter, items)){
@@ -239,7 +280,9 @@ int main(int argc, char** argv)
 								fprintf(stderr, "failed to parse document: %s in collection items", key);
 								return EXIT_FAILURE;
 							}
-							items_temp.push(mkLit(value->value.v_int32, false));
+							if(items_temp.size() < n_items){
+								items_temp.push(mkLit(value->value.v_int32, false));
+							}
 						}
 					}
 				}
@@ -250,7 +293,7 @@ int main(int argc, char** argv)
 		mongoc_collection_destroy(collection);
 
 		if(n_items != items_temp.size()){
-			fprintf(stderr, "failed to retrieve all items");
+			fprintf(stderr, "failed to retrieve all items, number of items: %d", items_temp.size());
 			return EXIT_FAILURE;
 		}
 		printf("Items received\n");
@@ -329,8 +372,6 @@ int main(int argc, char** argv)
 		
 		bson_destroy(query);
 		mongoc_database_destroy(database);
-        mongoc_client_destroy(client);
-        mongoc_cleanup();
 
 		for(int t = 0; t < nbThreads; t++)
 		{
@@ -510,25 +551,23 @@ int main(int argc, char** argv)
         /* Destroy the consumer */
         rd_kafka_destroy(rk);
 
-		for(int i = 0; i < nbThreads; i++)
+		for(int i = 0; i < 2 * nbThreads; i++)
 			coop.guiding_path.push_back(coop.guiding_path.at(coop.guiding_path.size() - 1) + 1);
 
 		coop.div_begining = coop.guiding_path[0];
         
-        vec<Lit> dummy;
 		lbool ret;
 		lbool result;
 	
 		// launch threads in Parallel 	
 
-	#pragma omp parallel
-	{
-	  	int t = omp_get_thread_num();
-	  	coop.start = true;
-	  	coop.solvers[t].EncodeDB(&coop);
-	  	ret = coop.solvers[t].solve_(&coop);
-	}
-	
+		#pragma omp parallel
+		{
+			int t = omp_get_thread_num();
+			coop.start = true;
+			coop.solvers[t].EncodeDB(&coop);
+			ret = coop.solvers[t].solve_(&coop);
+		}
 	
 		int cpt = 0;
 		// each worker print its models
@@ -538,17 +577,84 @@ int main(int argc, char** argv)
 
 		int nbcls = 0;
 		for(int t = 0; t < coop.nThreads(); t++){
-		cpt +=  coop.solvers[t].nbModels;
-		nbcls += coop.solvers[t].nbClauses;
-		printf("  %2d   |   %15d  | %d \n", t, coop.solvers[t].nbModels, (int)coop.solvers[t].conflicts);
-		//printf("-----------------------------------------------\n");
-		//coop.solvers[t].AfficheModel();
+			cpt +=  coop.solvers[t].nbModels;
+			nbcls += coop.solvers[t].nbClauses;
+			printf("  %2d   |   %15d  | %d \n", t, coop.solvers[t].nbModels, (int)coop.solvers[t].conflicts);
 		}
 		printf("-----------------------------------------------\n");
 		printf("total  | %15d    | \n", cpt);
 		printf("-----------------------------------------------\n");
 		
 		printf("#total Clauses  : %15d     \n", nbcls);
+
+		printf("\n");
+
+
+
+//		+-------------------------------------------------------+
+//		|                                                       |
+//		|                Models transmission                    |
+//		|                                                       |
+//		+-------------------------------------------------------+
+		char temp[30] = {0};
+		bool sent = true;
+		size_t keylen;
+
+		database = mongoc_client_get_database(client, "solvers");
+		collection = mongoc_client_get_collection(client, "solvers", "models");
+		
+		for(int i = 0; i < coop.models.size(); i++){
+            document = bson_new();
+            bson_oid_init(&oid, NULL);
+            BSON_APPEND_OID (document, "_id", &oid);
+            
+            sprintf(temp, "model_%d", i);
+            BSON_APPEND_ARRAY_BEGIN(document, temp, &child2);
+            for(uint32_t j = 0; (int) j < coop.models[i].size(); j++){
+                sprintf(temp, "%d", coop.models[i][j]);
+                keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
+                bson_append_int32(&child2, key, -1, coop.models[i][j]);
+            }
+            bson_append_array_end(document, &child2);
+
+            if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+                fprintf (stderr, "%s\n", error.message);
+                sent = false;
+            }
+
+            bson_destroy(document);
+        }
+
+        if(sent)
+            printf("Models sent\n");
+
+        mongoc_collection_destroy(collection);
+
+		collection = mongoc_client_get_collection(client, "solvers", "status");
+		document = bson_new();
+        bson_oid_init(&oid, NULL);
+        BSON_APPEND_OID(document, "_id", &oid);
+
+		BSON_APPEND_DOCUMENT_BEGIN(document, "solver", &child2);
+        BSON_APPEND_UTF8(&child2, "status", "ok");
+        bson_append_document_end(document, &child2);
+
+		if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+            fprintf (stderr, "%s\n", error.message);
+            sent = false;
+        }
+
+        bson_destroy(document);
+
+		if(sent)
+            printf("Solver status sent\n");
+
+		mongoc_collection_destroy(collection);
+		mongoc_database_destroy(database);
+		mongoc_client_destroy(client);
+        mongoc_cleanup();
+
+		printf("\n");
        
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')

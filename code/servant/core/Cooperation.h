@@ -44,7 +44,8 @@ Description:
     vec<vec<int> >      appearTrans;
     vec<int> occ;
     vec<vec<Lit> >      correl;
-    std::vector<int>            guiding_path;
+    vec<vec<int> >      models;
+    std::vector<int>    guiding_path;
     
     //=================================================================================================
  
