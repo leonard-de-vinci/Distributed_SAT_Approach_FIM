@@ -45,11 +45,17 @@ using namespace Minisat;
 using namespace std;
 
 char *gettime(){
-    time_t rawtime;
-    struct tm *timeinfo;
-    time(&rawtime);
-    timeinfo = localtime(&rawtime);
-    return asctime(timeinfo);
+        time_t rawtime;
+        struct tm *timeinfo;
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+        return asctime(timeinfo);
+}
+
+void delay(int duration){
+        clock_t start_time = clock();
+	while(clock() < start_time + duration)
+		;
 }
 
 static void dr_msg_cb (rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void *opaque){
@@ -63,9 +69,9 @@ static void dr_msg_cb (rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void
     /* The rkmessage is destroyed automatically by librdkafka */
 }
 
-static void stop (int sig) {
-        run = 0;
-        fclose(stdin); /* abort fgets() */
+static void stop (int sig){
+    run = 0;
+    fclose(stdin);
 }
 
 // Main:
@@ -88,6 +94,8 @@ int main(int argc, char** argv)
         IntOption    cpu_lim("MAIN", "cpu-lim","Limit on CPU time allowed in seconds.\n", INT32_MAX, IntRange(0, INT32_MAX));
         IntOption    mem_lim("MAIN", "mem-lim","Limit on memory usage in megabytes.\n", INT32_MAX, IntRange(0, INT32_MAX));
 	    IntOption    Freq    ("MAIN", "minSupport","# ....\n", 10,  IntRange(1, 100000000));//IntRange(1, omp_get_num_procs()));
+        IntOption    nsolvers    ("MAIN", "nsolvers","Number of solvers", 1,  IntRange(1, INT32_MAX));
+        IntOption    reset    ("MAIN", "reset","Data reset (0=yes, 1=no)", 0,  IntRange(0, 1));
 	
         parseOptions(argc, argv, true);
 
@@ -97,6 +105,12 @@ int main(int argc, char** argv)
 	    coop.min_supp = Freq;
 	    coop.solvers[0].threadId = 0;
 	    coop.solvers[0].verbosity = verb;
+        vec<int> solvers_config;
+        int totalcores = 0;
+        bool datareset = false;
+
+        if(reset == 0)
+            datareset = true;
 
 	    printf(" -----------------------------------------------------------------------------------------------------------------------\n");
 	    printf("|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
@@ -164,6 +178,8 @@ int main(int argc, char** argv)
 
         const char *mongo_config_file = "mongo.config";
         const char *key;
+        const bson_t *config;
+        const bson_value_t *value;
         char *uri_string;
         char temp[30] = {0};
         bool sent = true;
@@ -173,12 +189,13 @@ int main(int argc, char** argv)
         mongoc_client_t *client;
         mongoc_database_t *database;
         mongoc_collection_t *collection;
+        mongoc_cursor_t *cursor;
+        bson_t *query;
         bson_t *document;
         bson_t child;
         bson_error_t error;
         bson_oid_t oid;
-
-        fprintf(stderr, "Transmitting data to mongoDB database...\n");
+        bson_iter_t iter, child2;
 
         if (!(uri_string = mongo_config(mongo_config_file))){
             printf("Failed mongo config");
@@ -198,89 +215,110 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
 
-        mongoc_client_set_appname(client, "database-push");
+        mongoc_client_set_appname(client, "master");
 
-        database = mongoc_client_get_database(client, "dataset");
+        //Database reset
+        database = mongoc_client_get_database(client, "solvers");
         mongoc_database_drop_with_opts(database, NULL, NULL);
-        database = mongoc_client_get_database(client, "dataset");
+        mongoc_database_destroy(database);
 
-        //Configuration
-        collection = mongoc_client_get_collection(client, "dataset", "config");
-        document = bson_new();
-        bson_oid_init(&oid, NULL);
-        BSON_APPEND_OID(document, "_id", &oid);
-
-        BSON_APPEND_DOCUMENT_BEGIN(document, "items", &child);
-        BSON_APPEND_INT32(&child, "number", coop.items.size());
-        bson_append_document_end(document, &child);
-
-        BSON_APPEND_DOCUMENT_BEGIN(document, "tab_transactions", &child);
-        BSON_APPEND_INT32(&child, "number", coop.tabTransactions.size());
-        bson_append_document_end(document, &child);
-
-        BSON_APPEND_DOCUMENT_BEGIN(document, "appear_trans", &child);
-        BSON_APPEND_INT32(&child, "number", coop.appearTrans.size());
-        bson_append_document_end(document, &child);
-
-        if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-            fprintf (stderr, "%s\n", error.message);
-        }
-        else{
-            printf("Configuration sent\n");
+        if(datareset){
+            database = mongoc_client_get_database(client, "dataset");
+            mongoc_database_drop_with_opts(database, NULL, NULL);
+            mongoc_database_destroy(database);
         }
 
-        bson_destroy(document);
+        //Solver Config
+        fprintf(stderr, "Retrieving solvers config...\n");
+
+        database = mongoc_client_get_database(client, "solvers");
+        query = bson_new();
+
+        collection = mongoc_client_get_collection(client, "solvers", "config");
+        cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		do
+		{
+			delay(1000);
+		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != nsolvers);
+
+		while(mongoc_cursor_next(cursor, &config)){
+			if(bson_iter_init(&iter, config)){
+				while(bson_iter_next(&iter)){
+					key = bson_iter_key(&iter);
+					if(bson_iter_init_find(&iter, config, key) && BSON_ITER_HOLDS_ARRAY(&iter) && bson_iter_recurse(&iter, &child2)){
+						while(bson_iter_next(&child2)){
+							value = bson_iter_value(&child2);
+							if(!(value->value_type == BSON_TYPE_INT32)){
+								fprintf(stderr, "failed to parse document: %s in collection tab_transactions", key);
+								return EXIT_FAILURE;
+							}
+                            solvers_config.push(value->value.v_int32);
+							totalcores += value->value.v_int32;
+						}
+					}
+				}
+			}
+		}
+
+		mongoc_cursor_destroy(cursor);
         mongoc_collection_destroy(collection);
+        bson_destroy(query);
+		mongoc_database_destroy(database);
 
+        fprintf(stderr, "Solvers configurations received\n");
 
+        //Database push
+        if(datareset){
+            fprintf(stderr, "Transmitting data to mongoDB database...\n");
 
-        // Items
-        collection = mongoc_client_get_collection(client, "dataset", "items");
-        document = bson_new();
-        bson_oid_init(&oid, NULL);
-        BSON_APPEND_OID(document, "_id", &oid);
+            database = mongoc_client_get_database(client, "dataset");
 
-        BSON_APPEND_ARRAY_BEGIN(document, "items", &child);
-        for(uint32_t i = 0; (int) i < coop.items.size(); i++){
-            val = var(coop.items[i]);
-            if(sign(coop.items[i]))
-                val = -val;
-            sprintf(temp, "%d", val);
-            keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
-            bson_append_int32(&child, key, (int) keylen, val);
-        }
-        bson_append_array_end(document, &child);
-
-        if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-            fprintf (stderr, "%s\n", error.message);
-            sent = false;
-        }
-
-        if(sent)
-            printf("Items sent\n");
-
-        bson_destroy(document);
-        mongoc_collection_destroy(collection);
-
-
-
-        // Tab Transactions
-        collection = mongoc_client_get_collection(client, "dataset", "tab_transactions");
-
-        for(int i = 0; i < coop.tabTransactions.size(); i++){
+            //Configuration
+            collection = mongoc_client_get_collection(client, "dataset", "config");
             document = bson_new();
             bson_oid_init(&oid, NULL);
-            BSON_APPEND_OID (document, "_id", &oid);
-            
-            sprintf(temp, "transaction_%d", i);
-            BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
-            for(uint32_t j = 0; (int) j < coop.tabTransactions[i].size(); j++){
-                val = var(coop.tabTransactions[i][j]);
-                if(sign(coop.tabTransactions[i][j]))
+            BSON_APPEND_OID(document, "_id", &oid);
+
+            BSON_APPEND_DOCUMENT_BEGIN(document, "items", &child);
+            BSON_APPEND_INT32(&child, "number", coop.items.size());
+            bson_append_document_end(document, &child);
+
+            BSON_APPEND_DOCUMENT_BEGIN(document, "tab_transactions", &child);
+            BSON_APPEND_INT32(&child, "number", coop.tabTransactions.size());
+            bson_append_document_end(document, &child);
+
+            BSON_APPEND_DOCUMENT_BEGIN(document, "appear_trans", &child);
+            BSON_APPEND_INT32(&child, "number", coop.appearTrans.size());
+            bson_append_document_end(document, &child);
+
+            if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+                fprintf (stderr, "%s\n", error.message);
+                sent = false;
+            }
+            else{
+                printf("Configuration sent\n");
+            }
+
+            bson_destroy(document);
+            mongoc_collection_destroy(collection);
+
+
+
+            // Items
+            collection = mongoc_client_get_collection(client, "dataset", "items");
+            document = bson_new();
+            bson_oid_init(&oid, NULL);
+            BSON_APPEND_OID(document, "_id", &oid);
+
+            BSON_APPEND_ARRAY_BEGIN(document, "items", &child);
+            for(uint32_t i = 0; (int) i < coop.items.size(); i++){
+                val = var(coop.items[i]);
+                if(sign(coop.items[i]))
                     val = -val;
                 sprintf(temp, "%d", val);
                 keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
-                bson_append_int32(&child, key, -1, val);
+                bson_append_int32(&child, key, (int) keylen, val);
             }
             bson_append_array_end(document, &child);
 
@@ -289,48 +327,80 @@ int main(int argc, char** argv)
                 sent = false;
             }
 
-            bson_destroy(document);
-        }
-
-        if(sent)
-            printf("Tab transactions sent\n");
-
-        mongoc_collection_destroy(collection);
-
-
-
-        // Appear Trans
-        collection = mongoc_client_get_collection(client, "dataset", "appear_trans");
-
-        for(int i = 0; i < coop.appearTrans.size(); i++){
-            document = bson_new();
-            bson_oid_init(&oid, NULL);
-            BSON_APPEND_OID (document, "_id", &oid);
-
-            sprintf(temp, "appear_trans_%d", i);
-            BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
-            for(uint32_t j = 0; (int) j < coop.appearTrans[i].size(); j++){
-                sprintf(temp, "%d", coop.appearTrans[i][j]);
-                keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
-                bson_append_int32(&child, key, (int) keylen, coop.appearTrans[i][j]);
-            }
-            bson_append_array_end(document, &child);
-
-            if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-                fprintf (stderr, "%s\n", error.message);
-                sent = false;
-            }
+            if(sent)
+                printf("Items sent\n");
 
             bson_destroy(document);
+            mongoc_collection_destroy(collection);
+
+
+
+            // Tab Transactions
+            collection = mongoc_client_get_collection(client, "dataset", "tab_transactions");
+
+            for(int i = 0; i < coop.tabTransactions.size(); i++){
+                document = bson_new();
+                bson_oid_init(&oid, NULL);
+                BSON_APPEND_OID (document, "_id", &oid);
+                
+                sprintf(temp, "transaction_%d", i);
+                BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
+                for(uint32_t j = 0; (int) j < coop.tabTransactions[i].size(); j++){
+                    val = var(coop.tabTransactions[i][j]);
+                    if(sign(coop.tabTransactions[i][j]))
+                        val = -val;
+                    sprintf(temp, "%d", val);
+                    keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
+                    bson_append_int32(&child, key, -1, val);
+                }
+                bson_append_array_end(document, &child);
+
+                if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+                    fprintf (stderr, "%s\n", error.message);
+                    sent = false;
+                }
+
+                bson_destroy(document);
+            }
+
+            if(sent)
+                printf("Tab transactions sent\n");
+
+            mongoc_collection_destroy(collection);
+
+
+
+            // Appear Trans
+            collection = mongoc_client_get_collection(client, "dataset", "appear_trans");
+
+            for(int i = 0; i < coop.appearTrans.size(); i++){
+                document = bson_new();
+                bson_oid_init(&oid, NULL);
+                BSON_APPEND_OID (document, "_id", &oid);
+
+                sprintf(temp, "appear_trans_%d", i);
+                BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
+                for(uint32_t j = 0; (int) j < coop.appearTrans[i].size(); j++){
+                    sprintf(temp, "%d", coop.appearTrans[i][j]);
+                    keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
+                    bson_append_int32(&child, key, (int) keylen, coop.appearTrans[i][j]);
+                }
+                bson_append_array_end(document, &child);
+
+                if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+                    fprintf (stderr, "%s\n", error.message);
+                    sent = false;
+                }
+
+                bson_destroy(document);
+            }
+
+            if(sent)
+                printf("Appear trans sent\n");
+
+            mongoc_collection_destroy(collection);
+            mongoc_database_destroy(database);
         }
-
-        if(sent)
-            printf("Appear trans sent\n");
-
-        mongoc_collection_destroy(collection);
-        mongoc_database_destroy(database);
-        mongoc_client_destroy(client);
-        mongoc_cleanup();
 
         printf("\n");
 
@@ -385,12 +455,12 @@ int main(int argc, char** argv)
         /* Signal handler for clean shutdown */
         signal(SIGINT, stop);
 
-        create_topic(rk, topic, 1);
+        create_topic(rk, topic, nsolvers);
 
         //Guiding_Path
 
-        for(int i = coop.div_begining; run && i <= coop.items.size(); i++){
-            if(i == coop.items.size()){
+        for(int i = coop.div_begining; run && i < (coop.items.size() + nsolvers); i++){
+            if(i >= coop.items.size()){
                 sprintf(buff, "end");
                 len = strlen(buff);
             }
@@ -465,6 +535,9 @@ int main(int argc, char** argv)
              * delivery report callback served (and any other callbacks
              * you register). */
             rd_kafka_poll(rk, 0/*non-blocking*/);
+
+            if(i == coop.items.size() + nsolvers - 1)
+                run = false;
         }
 
         fprintf(stderr, "%% Flushing final messages..\n");
@@ -484,9 +557,68 @@ int main(int argc, char** argv)
         rd_kafka_destroy(rk);
         fclose(log);
 
-        vec<Lit> dummy;
-		lbool ret;
+        printf("\n");
+
+
+
+//		+-------------------------------------------------------+
+//		|                                                       |
+//		|                Models transmission                    |
+//		|                                                       |
+//		+-------------------------------------------------------+
+
+        const bson_t *models;
+        FILE *results = fopen("Models.txt", "w");
+        fprintf(results, "Results - Models\n\n");
+        fclose(results);
+        results = fopen("Models.txt", "a");
+
+        database = mongoc_client_get_database(client, "solvers");
+		query = bson_new();
+
+        collection = mongoc_client_get_collection(client, "solvers", "status");
+		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+        do{
+            delay(1000);
+        }while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != nsolvers);
+
+        mongoc_cursor_destroy(cursor);
+        mongoc_collection_destroy(collection);
+
+        collection = mongoc_client_get_collection(client, "solvers", "models");
+		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+        while(mongoc_cursor_next(cursor, &models)){
+			if(bson_iter_init(&iter, models)){
+				while(bson_iter_next(&iter)){
+					key = bson_iter_key(&iter);
+					if(bson_iter_init_find(&iter, models, key) && BSON_ITER_HOLDS_ARRAY(&iter) && bson_iter_recurse(&iter, &child2)){
+						while(bson_iter_next(&child2)){
+							value = bson_iter_value(&child2);
+							if(!(value->value_type == BSON_TYPE_INT32)){
+								fprintf(stderr, "failed to parse document: %s in collection tab_transactions", key);
+								return EXIT_FAILURE;
+							}
+							fprintf(results, "%d ", value->value.v_int32);
+						}
+                        fprintf(results, "\n");
+					}
+				}
+			}
+		}
+
+        printf("Models received\n");
+
+		mongoc_cursor_destroy(cursor);
+        mongoc_collection_destroy(collection);
+		mongoc_database_destroy(database);
+        mongoc_client_destroy(client);
+        mongoc_cleanup();
+
 	    lbool result;
+
+        printf("\n");
 
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
