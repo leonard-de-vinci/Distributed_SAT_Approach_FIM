@@ -1,5 +1,13 @@
 FROM flexiboy/core
 
+EXPOSE 27017/tcp
+EXPOSE 27017/udp
+EXPOSE 29092/tcp
+EXPOSE 29092/udp
+
+ENV MINSUPPORT=500
+ENV NCORES=2
+
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 
 ADD ./code/servant ./code/servant
@@ -9,4 +17,6 @@ RUN cd code/servant/core \
 	&& make clean\
 	&& make -k CXX=g++-10
 
-CMD /usr/bin/bash
+WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/servant/core
+
+CMD ./slave -minSupport=${MINSUPPORT} -ncores=${NCORES}
