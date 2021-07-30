@@ -109,11 +109,6 @@ int main(int argc, char** argv)
 	  		coop.solvers[t].verbosity = verb;
 		}
 
-		FILE* file = NULL;
-		file = fopen("models.txt", "w");
-		fprintf(file, "Results - Models\n\n");
-		fclose(file);
-
 		printf(" -----------------------------------------------------------------------------------------------------------------------\n");
 		printf("|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
 		printf(" -----------------------------------------------------------------------------------------------------------------------\n");
