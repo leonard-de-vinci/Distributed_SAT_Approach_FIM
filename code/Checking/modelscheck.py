@@ -36,16 +36,16 @@ def clean(data):
 		final.append(sorted(i))
 	return sorted(sorted(final, key=lambda x:len(x)), key=lambda x:x[0])
 
-def comp(data, to_test):
+def comp(sample, to_test):
 	common = []
 	in_to_test = []
 	test = False
 
 	for elt in to_test:
-		for i, elt2 in enumerate(data):
+		for i, elt2 in enumerate(sample):
 			if sorted(elt) == sorted(elt2):
 				common.append(sorted(elt))
-				data.pop(i)
+				sample.pop(i)
 				test = True
 		if not(test):
 			in_to_test.append(elt)
@@ -53,10 +53,25 @@ def comp(data, to_test):
 
 	return common, in_to_test
 
-def results(common, in_to_test, sample):
+def checkdouble(common, in_to_test):
+	double = []
+	
+	for elt in common:
+		for i, elt2 in enumerate(in_to_test):
+			if sorted(elt) == sorted(elt2):
+				double.append(elt2)
+				in_to_test.pop(i)
+	
+	return double
+
+
+def results(common, double, in_to_test, sample):
 	with open('results.txt', 'w') as out:
 		out.write("Models in common:\n")
 		for elt in common:
+			out.write(f'{elt}\n')
+		out.write("\nModels in double:\n")
+		for elt in double:
 			out.write(f'{elt}\n')
 		out.write("\nModels in to_test not in sample:\n")
 		for elt in in_to_test:
@@ -71,8 +86,8 @@ def main():
 	sample = parse(load(path_to_sample))
 	to_test = parse(load(path_to_to_test))
 	common, in_to_test = comp(sample, to_test)
-	results(common, in_to_test, sample)
-	#show(sample)
+	double = checkdouble(common, in_to_test)
+	results(common, double, in_to_test, sample)
 
 if __name__ == '__main__':
 	main()
