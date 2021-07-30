@@ -98,7 +98,8 @@ int main(int argc, char** argv)
 
 		double initial_time = cpuTime();
 
-		int nbThreads   = ncores;	
+		int nbThreads   = ncores;
+		int nsolvers	= 0;
 		Cooperation coop(nbThreads);
 	
 		coop.min_supp = Freq;
@@ -156,7 +157,10 @@ int main(int argc, char** argv)
 		const bson_t *config, *items, *tab_transactions, *appear_trans;
 		const bson_value_t *value;
         char *uri_string;
+		char temp[30] = {0};
 		int n_items, n_trans, n_appear_trans, var_;
+		bool sent = true;
+		size_t keylen;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
         mongoc_database_t *database;
@@ -208,7 +212,7 @@ int main(int argc, char** argv)
             fprintf (stderr, "%s\n", error.message);
         }
         else{
-            printf("Solver configuration sent\n");
+            printf("Solver configuration sent\n\n");
         }
 
         bson_destroy(document);
@@ -216,6 +220,9 @@ int main(int argc, char** argv)
 		mongoc_database_destroy(database);
 
 		//Database pull
+
+		printf("Retrieving dataset...\n");
+
 
         database = mongoc_client_get_database(client, "dataset");
 		query = bson_new();
@@ -243,7 +250,9 @@ int main(int argc, char** argv)
 								fprintf(stderr, "failed to parse document: %s in collection config", key);
 								return EXIT_FAILURE;
 							}
-							if(strcmp(key, "items") == 0)
+							if(strcmp(key, "nsolvers") == 0)
+								nsolvers = value->value.v_int32;
+							else if(strcmp(key, "items") == 0)
 								n_items = value->value.v_int32;
 							else if(strcmp(key, "tab_transactions") == 0)
 								n_trans = value->value.v_int32;
@@ -369,9 +378,39 @@ int main(int argc, char** argv)
 
 		printf("Appear trans received\n");
 
-		
-		bson_destroy(query);
 		mongoc_database_destroy(database);
+
+		database = mongoc_client_get_database(client, "solvers");
+		collection = mongoc_client_get_collection(client, "solvers", "waiting");
+		document = bson_new();
+        bson_oid_init(&oid, NULL);
+        BSON_APPEND_OID(document, "_id", &oid);
+
+		BSON_APPEND_DOCUMENT_BEGIN(document, "solver", &child2);
+        BSON_APPEND_UTF8(&child2, "status", "ok");
+        bson_append_document_end(document, &child2);
+
+		if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+            fprintf (stderr, "%s\n", error.message);
+            sent = false;
+        }
+
+        bson_destroy(document);
+
+		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+		do
+		{
+			delay(500);
+		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != nsolvers);
+
+		bson_destroy(query);
+		mongoc_cursor_destroy(cursor);
+		mongoc_collection_destroy(collection);
+		mongoc_database_destroy(database);
+
+		if(sent)
+            printf("Solver waiting status sent\n");
 
 		for(int t = 0; t < nbThreads; t++)
 		{
@@ -382,8 +421,6 @@ int main(int argc, char** argv)
 		}
 
 		printf("\n");
-
-
 
 		if (coop.solvers[0].verbosity > 0){
         	printf(" ===============================================[ Problem Statistics ]==================================================\n");
@@ -596,9 +633,8 @@ int main(int argc, char** argv)
 //		|                Models transmission                    |
 //		|                                                       |
 //		+-------------------------------------------------------+
-		char temp[30] = {0};
-		bool sent = true;
-		size_t keylen;
+
+		printf("Sending models...\n");
 
 		database = mongoc_client_get_database(client, "solvers");
 		collection = mongoc_client_get_collection(client, "solvers", "models");
@@ -608,7 +644,7 @@ int main(int argc, char** argv)
             bson_oid_init(&oid, NULL);
             BSON_APPEND_OID (document, "_id", &oid);
             
-            sprintf(temp, "model_%d", i);
+            sprintf(temp, "model");
             BSON_APPEND_ARRAY_BEGIN(document, temp, &child2);
             for(uint32_t j = 0; (int) j < coop.models[i].size(); j++){
                 sprintf(temp, "%d", coop.models[i][j]);
@@ -630,7 +666,7 @@ int main(int argc, char** argv)
 
         mongoc_collection_destroy(collection);
 
-		collection = mongoc_client_get_collection(client, "solvers", "status");
+		collection = mongoc_client_get_collection(client, "solvers", "finished");
 		document = bson_new();
         bson_oid_init(&oid, NULL);
         BSON_APPEND_OID(document, "_id", &oid);
@@ -647,7 +683,7 @@ int main(int argc, char** argv)
         bson_destroy(document);
 
 		if(sent)
-            printf("Solver status sent\n");
+            printf("Solver finish status sent\n");
 
 		mongoc_collection_destroy(collection);
 		mongoc_database_destroy(database);
