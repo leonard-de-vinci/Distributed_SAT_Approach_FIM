@@ -194,6 +194,80 @@ int create_topic (rd_kafka_t *rk, const char *topic,
         return ret;
 }
 
+int delete_topic (rd_kafka_t *rk, const char *topic) {
+        rd_kafka_DeleteTopic_t *delt;
+        char errstr[256];
+        rd_kafka_queue_t *queue;
+        rd_kafka_event_t *rkev;
+        const rd_kafka_DeleteTopics_result_t *res;
+        const rd_kafka_topic_result_t **restopics;
+        size_t restopic_cnt;
+        int ret = 0;
+
+        fprintf(stderr, "Deleting topic %s\n", topic);
+
+        delt = rd_kafka_DeleteTopic_new(topic);
+        if (!delt) {
+                fprintf(stderr, "Failed to create DeleteTopic object: %s\n",
+                        errstr);
+                return -1;
+        }
+
+        /* Use a temporary queue for the asynchronous Admin result */
+        queue = rd_kafka_queue_new(rk);
+
+        /* Asynchronously create topic, result will be available on \c queue */
+        rd_kafka_DeleteTopics(rk, &delt, 1, NULL, queue);
+
+        rd_kafka_DeleteTopic_destroy(delt);
+
+        /* Wait for result event */
+        rkev = rd_kafka_queue_poll(queue, 15*1000);
+        if (!rkev) {
+                /* There will eventually be a result, after operation
+                 * and request timeouts, but in this example we'll only
+                 * wait 15s to avoid stalling too long when cluster
+                 * is not available. */
+                fprintf(stderr, "No delete topics result in 15s\n");
+                return -1;
+        }
+
+        if (rd_kafka_event_error(rkev)) {
+                /* Request-level failure */
+                fprintf(stderr, "Delete topics request failed: %s\n",
+                        rd_kafka_event_error_string(rkev));
+                rd_kafka_event_destroy(rkev);
+                return -1;
+        }
+
+        /* Extract the result type from the event. */
+        res = rd_kafka_event_DeleteTopics_result(rkev);
+        assert(res); /* Since we're using a dedicated queue we know this is
+                      * a CreateTopics result type. */
+
+        /* Extract the per-topic results from the result type. */
+        restopics = rd_kafka_DeleteTopics_result_topics(res, &restopic_cnt);
+        assert(restopics && restopic_cnt == 1);
+
+        if (rd_kafka_topic_result_error(restopics[0]) ==
+            RD_KAFKA_RESP_ERR_TOPIC_ALREADY_EXISTS) {
+                fprintf(stderr, "Topic %s already exists\n",
+                        rd_kafka_topic_result_name(restopics[0]));
+        } else if (rd_kafka_topic_result_error(restopics[0])) {
+                fprintf(stderr, "Failed to create topic %s: %s\n",
+                        rd_kafka_topic_result_name(restopics[0]),
+                        rd_kafka_topic_result_error_string(restopics[0]));
+                ret = -1;
+        } else {
+                fprintf(stderr, "Topic %s successfully deleted\n",
+                        rd_kafka_topic_result_name(restopics[0]));
+        }
+
+        rd_kafka_event_destroy(rkev);
+
+        return ret;
+}
+
 
 
 char *mongo_config(const char *config_file){

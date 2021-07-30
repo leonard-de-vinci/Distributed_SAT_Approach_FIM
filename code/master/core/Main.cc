@@ -280,6 +280,10 @@ int main(int argc, char** argv)
             bson_oid_init(&oid, NULL);
             BSON_APPEND_OID(document, "_id", &oid);
 
+            BSON_APPEND_DOCUMENT_BEGIN(document, "nsolvers", &child);
+            BSON_APPEND_INT32(&child, "number", nsolvers);
+            bson_append_document_end(document, &child);
+
             BSON_APPEND_DOCUMENT_BEGIN(document, "items", &child);
             BSON_APPEND_INT32(&child, "number", coop.items.size());
             bson_append_document_end(document, &child);
@@ -343,7 +347,7 @@ int main(int argc, char** argv)
                 bson_oid_init(&oid, NULL);
                 BSON_APPEND_OID (document, "_id", &oid);
                 
-                sprintf(temp, "transaction_%d", i);
+                sprintf(temp, "transaction");
                 BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
                 for(uint32_t j = 0; (int) j < coop.tabTransactions[i].size(); j++){
                     val = var(coop.tabTransactions[i][j]);
@@ -378,7 +382,7 @@ int main(int argc, char** argv)
                 bson_oid_init(&oid, NULL);
                 BSON_APPEND_OID (document, "_id", &oid);
 
-                sprintf(temp, "appear_trans_%d", i);
+                sprintf(temp, "appear_trans");
                 BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
                 for(uint32_t j = 0; (int) j < coop.appearTrans[i].size(); j++){
                     sprintf(temp, "%d", coop.appearTrans[i][j]);
@@ -417,6 +421,7 @@ int main(int argc, char** argv)
         char errstr[512]; //librdkafka API error reporting buffer
         char buff[512]; //Message value temporary buffer
         FILE *log = fopen("kafka.log", "a");
+        int partition = 0;
 
         const char *topic = "guiding_path";
         const char *config_file = "librdkafka.config";
@@ -469,6 +474,11 @@ int main(int argc, char** argv)
                 len = strlen(buff);
             }
 
+            if(partition == nsolvers - 1)
+                partition = 0;
+            else
+                partition++;
+
             /*
              * Send/Produce message.
              * This is an asynchronous call, on success it will only
@@ -480,11 +490,14 @@ int main(int argc, char** argv)
              * when the message has been delivered (or failed).
              */
             do{
+                /* rd_kafka_producev(producer handle, ..., RD_KAFKA_V_END); */
                 err = rd_kafka_producev(
                     /* Producer handle */
                     rk,
                     /* Topic name */
                     RD_KAFKA_V_TOPIC(topic),
+                    /* Partition */
+                    RD_KAFKA_V_PARTITION(partition),
                     /* Make a copy of the payload. */
                     RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
                     /* Message value and length */
@@ -553,8 +566,6 @@ int main(int argc, char** argv)
             fprintf(stderr, "%% All messages were delivered\n");
         }
 
-        /* Destroy the producer instance */
-        rd_kafka_destroy(rk);
         fclose(log);
 
         printf("\n");
@@ -576,7 +587,7 @@ int main(int argc, char** argv)
         database = mongoc_client_get_database(client, "solvers");
 		query = bson_new();
 
-        collection = mongoc_client_get_collection(client, "solvers", "status");
+        collection = mongoc_client_get_collection(client, "solvers", "finished");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
         do{
@@ -615,6 +626,12 @@ int main(int argc, char** argv)
 		mongoc_database_destroy(database);
         mongoc_client_destroy(client);
         mongoc_cleanup();
+
+        /* Destroy the topic */
+        delete_topic(rk, topic);
+
+        /* Destroy the producer instance */
+        rd_kafka_destroy(rk);
 
 	    lbool result;
 
