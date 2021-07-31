@@ -3,6 +3,16 @@ FROM flexiboy/core
 ENV MINSUPPORT=500
 ENV NCORES=2
 
+ENV MONGOUSER=root
+ENV MONGOPASS=root
+ENV MONGOADDR=mongodb
+ENV MONGOPORT=27017
+
+ENV KAFKAADDR=broker
+ENV KAFKAPORT=29092
+ENV KAFKAGROUP=solvers
+ENV KAFKAOFTRST=earliest
+
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 
 ADD ./code/servant ./code/servant
@@ -10,7 +20,15 @@ ADD ./data ./data
 
 RUN cd code/servant/core \
 	&& make clean\
-	&& make -k CXX=g++-10
+	&& make -k CXX=g++-10\
+	&& echo "username=${MONGOUSER}" > mongo.config\
+	&& echo "password=${MONGOPASS}" >> mongo.config\
+	&& echo "address=${MONGOADDR}" >> mongo.config\
+	&& echo "port=${MONGOPORT}" >> mongo.config\
+	&& echo "#Kafka" > librdkafka.config\
+	&& echo "bootstrap.servers=${KAFKAADDR}:${KAFKAPORT}" >> librdkafka.config\
+	&& echo "group.id=${KAFKAGROUP}" >> librdkafka.config\
+	&& echo "auto.offset.reset=${KAFKAOFTRST}" >> librdkafka.config
 
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/servant/core
 

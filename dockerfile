@@ -5,6 +5,14 @@ ENV NSOLVERS=2
 ENV RESET=0
 ENV DATASET=../../../data/retail.dat
 
+ENV MONGOUSER=root
+ENV MONGOPASS=root
+ENV MONGOADDR=mongodb
+ENV MONGOPORT=27017
+
+ENV KAFKAADDR=broker
+ENV KAFKAPORT=29092
+
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 
 ADD ./code/master ./code/master
@@ -12,7 +20,13 @@ ADD ./data ./data
 
 RUN cd code/master/core\
 	&& make clean\
-	&& make -k CXX=g++-10
+	&& make -k CXX=g++-10\
+	&& echo "username=${MONGOUSER}" > mongo.config\
+	&& echo "password=${MONGOPASS}" >> mongo.config\
+	&& echo "address=${MONGOADDR}" >> mongo.config\
+	&& echo "port=${MONGOPORT}" >> mongo.config\
+	&& echo "#Kafka" > librdkafka.config\
+	&& echo "bootstrap.servers=${KAFKAADDR}:${KAFKAPORT}" >> librdkafka.config
 
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/master/core
 
