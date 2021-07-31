@@ -96,8 +96,6 @@ int main(int argc, char** argv)
 	
         parseOptions(argc, argv, true);
 
-		double initial_time = cpuTime();
-
 		int nbThreads   = ncores;
 		int nsolvers	= 0;
 		Cooperation coop(nbThreads);
@@ -375,38 +373,6 @@ int main(int argc, char** argv)
 
 		mongoc_database_destroy(database);
 
-		database = mongoc_client_get_database(client, "solvers");
-		collection = mongoc_client_get_collection(client, "solvers", "waiting");
-		document = bson_new();
-        bson_oid_init(&oid, NULL);
-        BSON_APPEND_OID(document, "_id", &oid);
-
-		BSON_APPEND_DOCUMENT_BEGIN(document, "solver", &child2);
-        BSON_APPEND_UTF8(&child2, "status", "ok");
-        bson_append_document_end(document, &child2);
-
-		if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-            fprintf (stderr, "%s\n", error.message);
-            sent = false;
-        }
-
-        bson_destroy(document);
-
-		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
-
-		do
-		{
-			delay(500);
-		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != nsolvers);
-
-		bson_destroy(query);
-		mongoc_cursor_destroy(cursor);
-		mongoc_collection_destroy(collection);
-		mongoc_database_destroy(database);
-
-		if(sent)
-            printf("Solver waiting status sent\n");
-
 		for(int t = 0; t < nbThreads; t++)
 		{
 			items_temp.copyTo(coop.solvers[t].allItems);
@@ -433,12 +399,6 @@ int main(int argc, char** argv)
         if (coop.solvers[0].verbosity > 0){
 		//  printf("|  Number of variables:  %12d                                                                                   |\n", coop.solvers[0].nVars());
 		}
-        
-        double parsed_time = cpuTime();
-        if (coop.solvers[0].verbosity > 0){
-            printf("|  Parse time:           %12.2f s                                                                                 |\n", parsed_time - initial_time);
-            printf("|                                                                                                                       |\n"); }
-
 
 		if (!coop.solvers[0].simplify()){
 	  		if (res != NULL)
@@ -508,13 +468,15 @@ int main(int argc, char** argv)
         rd_kafka_topic_partition_list_add(subscription, topics, RD_KAFKA_PARTITION_UA); // the partition is ignored by subscribe()
 
         /* Subscribe to the list of topics */
-        err = rd_kafka_subscribe(rk, subscription);
-        if (err){
-            fprintf(stderr, "%% Failed to subscribe to %d topics: %s\n", subscription->cnt, rd_kafka_err2str(err));
-            rd_kafka_topic_partition_list_destroy(subscription);
-            rd_kafka_destroy(rk);
-            return 1;
-        }
+		do
+		{
+			if (err && err != RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART){
+            	fprintf(stderr, "%% Failed to subscribe to %d topics: %s\n", subscription->cnt, rd_kafka_err2str(err));
+            	rd_kafka_topic_partition_list_destroy(subscription);
+            	rd_kafka_destroy(rk);
+            	return 1;
+        	}
+		} while ((err = rd_kafka_subscribe(rk, subscription)) == RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART);
 
         fprintf(stderr, "%% Subscribed to %d topic(s), waiting for rebalance and messages...\n", subscription->cnt);
 
@@ -545,7 +507,8 @@ int main(int argc, char** argv)
                 /* Consumer errors are generally to be considered
                  * informational as the consumer will automatically
                  * try to recover from all types of errors. */
-                fprintf(stderr, "%% Consumer error: %s\n", rd_kafka_message_errstr(rkm));
+				if (rkm->err != RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART)
+                	fprintf(stderr, "%% Consumer error: %s\n", rd_kafka_message_errstr(rkm));
             	rd_kafka_message_destroy(rkm);
                 continue;
             }
@@ -583,6 +546,8 @@ int main(int argc, char** argv)
         /* Destroy the consumer */
         rd_kafka_destroy(rk);
 
+		printf("\n");
+
 		for(int i = 0; i < 2 * nbThreads; i++)
 			coop.guiding_path.push_back(coop.guiding_path.at(coop.guiding_path.size() - 1) + 1);
 
@@ -590,6 +555,8 @@ int main(int argc, char** argv)
         
 		lbool ret;
 		lbool result;
+		double time_elapsed = 0.0;
+		clock_t begin = clock();
 	
 		// launch threads in Parallel 	
 
@@ -600,6 +567,9 @@ int main(int argc, char** argv)
 			coop.solvers[t].EncodeDB(&coop);
 			ret = coop.solvers[t].solve_(&coop);
 		}
+
+		clock_t end = clock();
+		time_elapsed += (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
 	
 		int cpt = 0;
 		// each worker print its models
@@ -666,8 +636,17 @@ int main(int argc, char** argv)
         bson_oid_init(&oid, NULL);
         BSON_APPEND_OID(document, "_id", &oid);
 
-		BSON_APPEND_DOCUMENT_BEGIN(document, "solver", &child2);
-        BSON_APPEND_UTF8(&child2, "status", "ok");
+		BSON_APPEND_DOCUMENT_BEGIN(document, "processing_time (in ms)", &child2);
+
+		for(int i = 0; i < coop.processing_time.size(); i++){
+			sprintf(temp, "%d", (int) coop.processing_time[i][0]);
+			BSON_APPEND_DOUBLE(&child2, temp, coop.processing_time[i][1]);
+		}
+
+		bson_append_document_end(document, &child2);
+
+		BSON_APPEND_DOCUMENT_BEGIN(document, "time_elapsed", &child2);
+        BSON_APPEND_DOUBLE(&child2, "processing time (in ms)", time_elapsed);
         bson_append_document_end(document, &child2);
 
 		if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
