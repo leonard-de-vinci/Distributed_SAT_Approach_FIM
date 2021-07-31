@@ -71,22 +71,22 @@ services:
       - 8082:8082
     restart: always
 
-  master:
-    image: flexiboy/master:latest
-    container_name: master
-    depends_on: 
-      - mongodb
-      - broker
-      - schema-registry
+  # master:
+  #   image: flexiboy/master:latest
+  #   container_name: master
+  #   depends_on: 
+  #     - mongodb
+  #     - broker
+  #     - schema-registry
   
-  slave-1:
-    image: flexiboy/servant:latest
-    container_name: solver1
-    depends_on: 
-      - master
+  # slave-1:
+  #   image: flexiboy/servant:latest
+  #   container_name: solver1
+  #   depends_on: 
+  #     - master
 
-  slave-2:
-    image: flexiboy/servant:latest
-    container_name: solver2
-    depends_on: 
-      - master
+  # slave-2:
+  #   image: flexiboy/servant:latest
+  #   container_name: solver2
+  #   depends_on: 
+  #     - master
