@@ -71,13 +71,6 @@ bool Cooperation::addTransactions(vec<Lit>& ps)
     |________________________________________________________________________________________________@*/
 
   void Cooperation::buildGuidingPaths(){
-    FILE* data = NULL;
-    data = fopen("data.txt", "w");
-    fprintf(data, "Items:\n\n");
-    fclose(data);
-    data = fopen("data.txt", "a");
-
-
     for(int i = 0; i < solvers[0].nVars(); i++){
       items.push(mkLit(i, false));
       correl.push();
@@ -132,138 +125,15 @@ bool Cooperation::addTransactions(vec<Lit>& ps)
       else
 	      break;
 
-    printf("----------------------------------------------------------------------------\n");
-    printf("              |                  |--<>- items            : %10d      | \n",items.size());
-    printf("   DataBase Description          |--<>- transactions     : %10d      |\n", tabTransactions.size());
-    printf(" +++++++++++++++++++++++++     +-|-+                                       | \n");
-    printf("                               +-|-+                                       | \n");
-    printf("                                 |--<>-  infrequent items : %10d     |\n",div_begining);
-    printf("                                 |--<>- min support      : %10d      |\n", min_supp);
-    printf("                                 |                                         | \n");
-    printf("--------------------------------------------------------------------------\n\n");
-
-    // // Items
-    // sprintf(msg, "%d", items.size());
-    // write(new_socket, msg, strlen(msg));
-    // read(new_socket, buffer, 1024);
-
-    // if(buffer == "ok"){
-    //   for(int i = 0; i < items.size(); i++){
-    //     //fprintf(data, "%s%d\n", sign(items[i]) ? "-" : "", var(items[i]));
-    //     if(sign(items[i])){
-    //       sprintf(msg, "-%d", var(items[i]));
-    //     }
-    //     else{
-    //       sprintf(msg, "%d", var(items[i]));
-    //     }
-    //     write(new_socket, msg, strlen(msg));
-    //   }
-    // }
-
-    // // Checking the sending
-    // if(read(new_socket, buffer, 1024) > 0){
-    //   printf("Items sent succesfully !\n");
-    // }
-
-    // //fprintf(data, "Transactions: \n");
-
-    // // TabTransaction
-    // sprintf(msg, "%d", tabTransactions.size());
-    // write(new_socket, msg, strlen(msg));
-    // read(new_socket, buffer, 1024);
-
-    // if(buffer == "ok"){
-    //   for(int i = 0; i < tabTransactions.size(); i++)
-    //   {
-    //     //fprintf(data, "[");
-    //     sprintf(msg, "%d", tabTransactions[i].size());
-    //     write(new_socket, msg, strlen(msg));
-    //     read(new_socket, buffer, 1024);
-
-    //     if(buffer == "ok"){
-    //       for(int j = 0; j < tabTransactions[i].size(); j++)
-    //       {
-    //         //fprintf(data, "%s%d,", sign(tabTransactions[i][j]) ? "-" : "", var(tabTransactions[i][j]));
-    //         if(sign(tabTransactions[i][j])){
-    //           sprintf(msg, "-%d", var(tabTransactions[i][j]));
-    //         }
-    //         else{
-    //           sprintf(msg, "%d", var(tabTransactions[i][j]));
-    //         }
-    //         write(new_socket, msg, strlen(msg));
-    //       }
-    //       //fprintf(data, "]\n");
-    //     }
-    //   }
-    // }
-
-    // // Checking the sending
-    // if(read(new_socket, buffer, 1024) > 0){
-    //   printf("Transaction table sent succesfully!\n");
-    // }
-
-    // //fprintf(data, "\nAppearTrans: \n");
-
-    // // Appear Trans
-    // sprintf(msg, "%d", appearTrans.size());
-    // write(new_socket, msg, strlen(msg));
-    // read(new_socket, buffer, 1024);
-
-    // if(buffer == "ok"){
-    //   for(int i = 0; i < appearTrans.size(); i++)
-    //   {
-    //     //fprintf(data, "[");
-    //     sprintf(msg, "%d", appearTrans[i].size());
-    //     write(new_socket, msg, strlen(msg));
-    //     read(new_socket, buffer, 1024);
-
-    //     if (buffer == "ok"){
-    //       for(int j = 0; j < appearTrans[i].size(); j++)
-    //       {
-    //         //fprintf(data, "%d,", appearTrans[i][j]);
-    //         sprintf(msg, "%d", appearTrans[i][j]);
-    //         write(new_socket, msg, strlen(msg));
-    //       }
-    //     }
-    //     //fprintf(data, "]\n");
-    //   }
-    // }
-
-    // // Checking the sending
-    // if(read(new_socket, buffer, 1024) > 0){
-    //   printf("Appear transactions sent succesfully!\n");
-    // }
-    
-    // //Div bigining
-    // sprintf(msg, "%d", div_begining);
-    // write(new_socket, msg, strlen(msg));
-    // if(read(new_socket, buffer, 1024) > 0){
-    //   printf("Div begining succesfully sent!\n");
-    // }
-    // //fprintf(data, "\nDiv begining: \n%d\n\nOcc:\n", div_begining);
-
-    // // Occ
-    // sprintf(msg, "%d", occ.size());
-    // write(new_socket, msg, strlen(msg));
-    // read(new_socket, buffer, 1024);
-
-    // if(buffer == "ok"){
-    //   for(int i = 0; i < occ.size(); i++){
-    //     //fprintf(data, "%d\n", occ[i]);
-    //     sprintf(msg, "%d", occ[i]);
-    //     write(new_socket, msg, strlen(msg));
-    //   }
-    // }
-
-    // // Checking the sending
-    // if(read(new_socket, buffer, 1024) > 0){
-    //   printf("Occurences sent succesfully!\n");
-    // }
-
-    // fprintf(data, "Number of transactions: \n");
-    // fprintf(data, "%d", tabTransactions.size());
-    fclose(data);
-  
+    printf("+---------------------------------------------------------------------------+\n");
+    printf("|              |                  |--<>- items            : %10d      | \n",items.size());
+    printf("|   DataBase Description          |--<>- transactions     : %10d      |\n", tabTransactions.size());
+    printf("| +++++++++++++++++++++++++     +-|-+                                       | \n");
+    printf("|                               +-|-+                                       | \n");
+    printf("|                                 |--<>-  infrequent items : %10d     |\n",div_begining);
+    printf("|                                 |--<>- min support      : %10d      |\n", min_supp);
+    printf("|                                 |                                         | \n");
+    printf("+---------------------------------------------------------------------------+\n\n");
       
     printf("<> start enumerating....\n");
   }
