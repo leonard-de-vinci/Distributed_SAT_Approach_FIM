@@ -46,6 +46,7 @@ Description:
     vec<vec<Lit> >      correl;
     vec<vec<int> >      models;
     std::vector<int>    guiding_path;
+    vec<vec<double> >      processing_time;
     
     //=================================================================================================
  

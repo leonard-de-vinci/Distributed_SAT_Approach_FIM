@@ -25,6 +25,7 @@
 #include "core/Cooperation.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <iostream>
 
@@ -672,7 +673,6 @@ void Solver::simplifier(){
  |________________________________________________________________________________________________@*/
 lbool Solver::search(int nof_conflicts, Cooperation* coop)
 {
-    //FILE *test = fopen("test.txt", "a");
   //assert(ok);
    // int       backtrack_level;
     int         conflictC = 0;
@@ -680,10 +680,13 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
     lbool       answer;
     starts++;
 
-    //fprintf(test, "Solver %d | A | ind: %d\n", threadId, ind);
+    end = clock();
+    coop->processing_time[coop->processing_time.size()-1].push((double) (end - begin) / CLOCKS_PER_SEC * 1000.0);
     ind = coop->guiding_path[0];
     coop->guiding_path.erase(coop->guiding_path.begin());
-    //fprintf(test, "Solver %d | B | ind: %d\n", threadId, ind); 	
+    coop->processing_time.push();
+    coop->processing_time[coop->processing_time.size()-1].push((double) ind);
+    begin = clock();
     
     for (;;){
     
@@ -712,23 +715,29 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
 	      reduceDB();
 
 	      while((ind < allItems.size())  && !encodeGuidingPath(coop, ind+1)){
+          end = clock();
+          coop->processing_time[coop->processing_time.size()-1].push((double) (end - begin) / CLOCKS_PER_SEC * 1000.0);
           ind = coop->guiding_path[0];
           coop->guiding_path.erase(coop->guiding_path.begin());
-          //fprintf(test, "Solver %d | C | ind: %d\n", threadId, ind);
+          coop->processing_time.push();
+          coop->processing_time[coop->processing_time.size()-1].push((double) ind);
+          begin = clock();
         }
 	      
 	      if(ind >=  allItems.size()){
-          //fclose(test);
           return l_False;
         }
 		      
 	      diviser_state = 1;
+        end = clock();
+        coop->processing_time[coop->processing_time.size()-1].push((double) (end - begin) / CLOCKS_PER_SEC * 1000.0);
         ind = coop->guiding_path[0];
         coop->guiding_path.erase(coop->guiding_path.begin());
-        //fprintf(test, "Solver %d | D | ind: %d\n", threadId, ind);
+        coop->processing_time.push();
+        coop->processing_time[coop->processing_time.size()-1].push((double) ind);
+        begin = clock();
 	      goto Prop;
 	    }else{
-        //fclose(test);
 	      return l_False;
       }
 	  
@@ -860,10 +869,18 @@ lbool Solver::solve_(Cooperation* coop) //add here a int guiding_path parameter
   if (!ok) return l_False;
   ind = coop->guiding_path[0];
   coop->guiding_path.erase(coop->guiding_path.begin());
+  coop->processing_time.push();
+  coop->processing_time[coop->processing_time.size()-1].push((double) ind);
+  begin = clock();
 
   while((ind < allItems.size())  && !encodeGuidingPath(coop, ind+1)){
+    end = clock();
+    coop->processing_time[coop->processing_time.size()-1].push((double) (end - begin) / CLOCKS_PER_SEC * 1000.0);
     ind = coop->guiding_path[0];
     coop->guiding_path.erase(coop->guiding_path.begin());
+    coop->processing_time.push();
+    coop->processing_time[coop->processing_time.size()-1].push((double) ind);
+    begin = clock();
   }
   if(ind >=  allItems.size())
     return l_False;

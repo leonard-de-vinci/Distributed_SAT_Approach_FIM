@@ -27,6 +27,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "../utils/Options.h"
 #include "SolverTypes.h"
 
+#include <time.h>
+
 
 
 
@@ -150,12 +152,14 @@ public:
     
     int       threadId;           // identifier of the thread
     bool      firstInterpretation;// first interpretation variables are chosen randomely
-    int       deterministic_mode;  
+    int       deterministic_mode; 
     vec<Lit>  importedUnits;
     
     vec<int>            VecItems;
     vec<int>            VecTrans;
-    vec<vec<int> >      finalModels;
+
+    clock_t begin;
+    clock_t end;
 
     // Statistics: (read-only member variable)
     //
