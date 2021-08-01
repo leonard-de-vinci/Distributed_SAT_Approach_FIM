@@ -18,13 +18,13 @@ WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 ADD ./code/master ./code/master
 ADD ./data ./data
 
-RUN echo "username=${MONGOUSER}" > mongo.config\
+RUN cd code/master/core\
+	&& echo "username=${MONGOUSER}" > mongo.config\
 	&& echo "password=${MONGOPASS}" >> mongo.config\
 	&& echo "address=${MONGOADDR}" >> mongo.config\
 	&& echo "port=${MONGOPORT}" >> mongo.config\
 	&& echo "#Kafka" > librdkafka.config\
 	&& echo "bootstrap.servers=${KAFKAADDR}:${KAFKAPORT}" >> librdkafka.config\
-	&& cd code/master/core\
 	&& make clean\
 	&& make -k CXX=g++-10
 
