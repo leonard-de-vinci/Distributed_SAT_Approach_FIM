@@ -71,22 +71,55 @@ services:
       - 8082:8082
     restart: always
 
-  # master:
-  #   image: master
-  #   container_name: master
-  #   depends_on: 
-  #     - mongodb
-  #     - broker
-  #     - schema-registry
+  master:
+    image: master
+    container_name: master
+    depends_on: 
+      - mongodb
+      - broker
+      - schema-registry
+    environment: 
+      - MINSUPPORT=500
+      - NSOLVERS=2
+      - RESET=0
+      - DATASET=../../data/retail.dat
+      - MONGOUSER=root
+      - MONGOPASS=root
+      - MONGOADDR=mongodb
+      - MONGOPORT=27017
+      - KAFKAADDR=broker
+      - KAFKAPORT=29092
   
-  # slave-1:
-  #   image: servant
-  #   container_name: solver1
-  #   depends_on: 
-  #     - master
+  slave-1:
+    image: servant
+    container_name: solver1
+    depends_on: 
+      - master
+    environment: 
+      - MINSUPPORT=500
+      - NCORES=2
+      - MONGOUSER=root
+      - MONGOPASS=root
+      - MONGOADDR=mongodb
+      - MONGOPORT=27017
+      - KAFKAADDR=broker
+      - KAFKAPORT=29092
+      - KAFKAGROUP=solvers
+      - KAFKAOFTRST=earliest
 
-  # slave-2:
-  #   image: servant
-  #   container_name: solver2
-  #   depends_on: 
-  #     - master
+  slave-2:
+    image: servant
+    container_name: solver2
+    depends_on: 
+      - master
+    environment: 
+      - MINSUPPORT=500
+      - NCORES=2
+      - MONGOUSER=root
+      - MONGOPASS=root
+      - MONGOADDR=mongodb
+      - MONGOPORT=27017
+      - KAFKAADDR=broker
+      - KAFKAPORT=29092
+      - KAFKAGROUP=solvers
+      - KAFKAOFTRST=earliest
