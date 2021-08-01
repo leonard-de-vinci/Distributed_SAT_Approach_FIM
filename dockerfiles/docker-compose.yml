@@ -71,22 +71,22 @@ services:
       - 8082:8082
     restart: always
 
-  master:
-    image: master
-    container_name: master
-    depends_on: 
-      - mongodb
-      - broker
-      - schema-registry
+  # master:
+  #   image: master
+  #   container_name: master
+  #   depends_on: 
+  #     - mongodb
+  #     - broker
+  #     - schema-registry
   
-  slave-1:
-    image: servant
-    container_name: solver1
-    depends_on: 
-      - master
+  # slave-1:
+  #   image: servant
+  #   container_name: solver1
+  #   depends_on: 
+  #     - master
 
-  slave-2:
-    image: servant
-    container_name: solver2
-    depends_on: 
-      - master
+  # slave-2:
+  #   image: servant
+  #   container_name: solver2
+  #   depends_on: 
+  #     - master
