@@ -581,6 +581,8 @@ int main(int argc, char** argv)
         fprintf(results, "Results - Models\n\n");
         fclose(results);
         results = fopen("Models.txt", "a");
+        int count = 0;
+        int previous_count = 0;
 
         database = mongoc_client_get_database(client, "solvers");
 		query = bson_new();
@@ -589,8 +591,12 @@ int main(int argc, char** argv)
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
         do{
+            if(previous_count < count){
+                fprintf(stderr, "Waiting for %d more solver(s)...\n", nsolvers - count);
+                previous_count = count;
+            }
             delay(1000);
-        }while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != nsolvers);
+        }while((count = mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error)) != nsolvers);
 
         mongoc_cursor_destroy(cursor);
         mongoc_collection_destroy(collection);

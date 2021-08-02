@@ -125,17 +125,17 @@ bool Cooperation::addTransactions(vec<Lit>& ps)
       else
 	      break;
 
-    printf("+---------------------------------------------------------------------------+\n");
-    printf("|              |                  |--<>- items            : %10d      | \n",items.size());
-    printf("|   DataBase Description          |--<>- transactions     : %10d      |\n", tabTransactions.size());
-    printf("| +++++++++++++++++++++++++     +-|-+                                       | \n");
-    printf("|                               +-|-+                                       | \n");
-    printf("|                                 |--<>-  infrequent items : %10d     |\n",div_begining);
-    printf("|                                 |--<>- min support      : %10d      |\n", min_supp);
-    printf("|                                 |                                         | \n");
-    printf("+---------------------------------------------------------------------------+\n\n");
+    fprintf(stderr, "+---------------------------------------------------------------------------+\n");
+    fprintf(stderr, "|              |                  |--<>- items            : %10d      | \n",items.size());
+    fprintf(stderr, "|   DataBase Description          |--<>- transactions     : %10d      |\n", tabTransactions.size());
+    fprintf(stderr, "| +++++++++++++++++++++++++     +-|-+                                       | \n");
+    fprintf(stderr, "|                               +-|-+                                       | \n");
+    fprintf(stderr, "|                                 |--<>-  infrequent items : %10d     |\n",div_begining);
+    fprintf(stderr, "|                                 |--<>- min support      : %10d      |\n", min_supp);
+    fprintf(stderr, "|                                 |                                         | \n");
+    fprintf(stderr, "+---------------------------------------------------------------------------+\n\n");
       
-    printf("<> start enumerating....\n");
+    fprintf(stderr, "<> start enumerating....\n");
   }
  
 }
