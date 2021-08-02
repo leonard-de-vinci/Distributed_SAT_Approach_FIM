@@ -24,4 +24,4 @@ As shown in the architecture schema below, the master will parse a dataset passe
 
 Here is the architecture used in this project:
 
-<img src='images/Schema architecture final.png' width=1000>
+<img src=https://github.com/leonard-de-vinci/Distributed_SAT_Approach_FIM/blob/main/Images/Schema%20architecture%20final.png width=1000>
