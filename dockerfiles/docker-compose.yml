@@ -24,9 +24,9 @@ services:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_LISTENERS: PLAINTEXT://broker:9092, PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENERS: PLAINTEXT://broker:9092, PLAINTEXT_HOST://localhost:29092 #For more complex network systems
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT #For more complex network systems
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TOOLS_LOG4J_LOGLEVEL: ERROR
@@ -73,55 +73,55 @@ services:
       - 8082:8082
     restart: always
 
-  master:
-    image: master
-    container_name: master
-    depends_on: 
-      - mongodb
-      - broker
-      - schema-registry
-    environment: 
-      - MINSUPPORT=500
-      - NSOLVERS=2
-      - RESET=0
-      - DATASET=../../../data/retail.dat
-      - MONGOUSER=root
-      - MONGOPASS=root
-      - MONGOADDR=mongodb
-      - MONGOPORT=27017
-      - KAFKAADDR=broker
-      - KAFKAPORT=9092
+  # master:
+  #   image: master
+  #   container_name: master
+  #   depends_on: 
+  #     - mongodb
+  #     - broker
+  #     - schema-registry
+  #   environment: 
+  #     - MINSUPPORT=500
+  #     - NSOLVERS=2
+  #     - RESET=0
+  #     - DATASET=../../../data/retail.dat
+  #     - MONGOUSER=root
+  #     - MONGOPASS=root
+  #     - MONGOADDR=mongodb
+  #     - MONGOPORT=27017
+  #     - KAFKAADDR=broker
+  #     - KAFKAPORT=9092
   
-  slave-1:
-    image: servant
-    container_name: solver1
-    depends_on: 
-      - master
-    environment: 
-      - MINSUPPORT=500
-      - NCORES=2
-      - MONGOUSER=root
-      - MONGOPASS=root
-      - MONGOADDR=mongodb
-      - MONGOPORT=27017
-      - KAFKAADDR=broker
-      - KAFKAPORT=9092
-      - KAFKAGROUP=solvers
-      - KAFKAOFTRST=earliest
+  # slave-1:
+  #   image: servant
+  #   container_name: solver1
+  #   depends_on: 
+  #     - master
+  #   environment: 
+  #     - MINSUPPORT=500
+  #     - NCORES=2
+  #     - MONGOUSER=root
+  #     - MONGOPASS=root
+  #     - MONGOADDR=mongodb
+  #     - MONGOPORT=27017
+  #     - KAFKAADDR=broker
+  #     - KAFKAPORT=9092
+  #     - KAFKAGROUP=solvers
+  #     - KAFKAOFTRST=earliest
 
-  slave-2:
-    image: servant
-    container_name: solver2
-    depends_on: 
-      - master
-    environment: 
-      - MINSUPPORT=500
-      - NCORES=2
-      - MONGOUSER=root
-      - MONGOPASS=root
-      - MONGOADDR=mongodb
-      - MONGOPORT=27017
-      - KAFKAADDR=broker
-      - KAFKAPORT=9092
-      - KAFKAGROUP=solvers
-      - KAFKAOFTRST=earliest
+  # slave-2:
+  #   image: servant
+  #   container_name: solver2
+  #   depends_on: 
+  #     - master
+  #   environment: 
+  #     - MINSUPPORT=500
+  #     - NCORES=2
+  #     - MONGOUSER=root
+  #     - MONGOPASS=root
+  #     - MONGOADDR=mongodb
+  #     - MONGOPORT=27017
+  #     - KAFKAADDR=broker
+  #     - KAFKAPORT=9092
+  #     - KAFKAGROUP=solvers
+  #     - KAFKAOFTRST=earliest
