@@ -11,7 +11,7 @@ ENV MONGOADDR=mongodb
 ENV MONGOPORT=27017
 
 ENV KAFKAADDR=broker
-ENV KAFKAPORT=29092
+ENV KAFKAPORT=9092
 
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 
