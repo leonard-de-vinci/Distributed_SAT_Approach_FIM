@@ -84,7 +84,7 @@ services:
       - MINSUPPORT=500
       - NSOLVERS=2
       - RESET=0
-      - DATASET=../../data/retail.dat
+      - DATASET=../../../data/retail.dat
       - MONGOUSER=root
       - MONGOPASS=root
       - MONGOADDR=mongodb
