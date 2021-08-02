@@ -64,6 +64,8 @@
  /usr/local/include/libmongoc-1.0/mongoc/mongoc-socket.h \
  /usr/local/include/libmongoc-1.0/mongoc/mongoc-gridfs-file.h \
  /usr/local/include/libmongoc-1.0/mongoc/mongoc-gridfs-file-list.h \
+ /usr/local/include/libmongoc-1.0/mongoc/mongoc-server-api.h \
+ /usr/local/include/libmongoc-1.0/mongoc/mongoc-optional.h \
  /usr/local/include/libmongoc-1.0/mongoc/mongoc-ssl.h \
  /usr/local/include/libmongoc-1.0/mongoc/mongoc-uri.h \
  /usr/local/include/libmongoc-1.0/mongoc/mongoc-client-pool.h \

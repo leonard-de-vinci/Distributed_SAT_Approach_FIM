@@ -112,9 +112,9 @@ int main(int argc, char** argv)
         if(reset == 0)
             datareset = true;
 
-	    printf(" -----------------------------------------------------------------------------------------------------------------------\n");
-	    printf("|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
-	    printf(" -----------------------------------------------------------------------------------------------------------------------\n");
+	    fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
+	    fprintf(stderr, "|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
+	    fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
 
         // Set limit on CPU-time:
         if (cpu_lim != INT32_MAX){
@@ -123,7 +123,7 @@ int main(int argc, char** argv)
             if (rl.rlim_max == RLIM_INFINITY || (rlim_t)cpu_lim < rl.rlim_max){
                 rl.rlim_cur = cpu_lim;
                 if (setrlimit(RLIMIT_CPU, &rl) == -1)
-                    printf("WARNING! Could not set resource limit: CPU-time.\n");
+                    fprintf(stderr, "WARNING! Could not set resource limit: CPU-time.\n");
             } 
         }
 
@@ -135,26 +135,24 @@ int main(int argc, char** argv)
             if (rl.rlim_max == RLIM_INFINITY || new_mem_lim < rl.rlim_max){
                 rl.rlim_cur = new_mem_lim;
                 if (setrlimit(RLIMIT_AS, &rl) == -1)
-                    printf("WARNING! Could not set resource limit: Virtual memory.\n");
+                    fprintf(stderr, "WARNING! Could not set resource limit: Virtual memory.\n");
             }
         }
         
         if (argc == 1)
-            printf("Reading from standard input... Use '--help' for help.\n");
+            fprintf(stderr, "Reading from standard input... Use '--help' for help.\n");
         
         gzFile in = (argc == 1) ? gzdopen(0, "rb") : gzopen(argv[1], "rb");
         if (in == NULL)
-            printf("ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1]), exit(1);
+            fprintf(stderr, "ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1]), exit(1);
 
         if (coop.solvers[0].verbosity > 0){
-            printf(" ===============================================[ Problem Statistics ]==================================================\n");
-            printf("|                                                                                                                       |\n");
-            printf("|                                                                                                                       |\n");
+            fprintf(stderr, " ===============================================[ Problem Statistics ]==================================================\n");
+            fprintf(stderr, "|                                                                                                                       |\n");
+            fprintf(stderr, "|                                                                                                                       |\n");
         }
         
-	    printf("<> instance    : %s\n", argv[1]);
-	
-
+	    fprintf(stderr, "<> instance    : %s\n", argv[1]);
 
 	    parse_DIMACS(in, &coop);
 		
@@ -162,11 +160,11 @@ int main(int argc, char** argv)
         
         double parsed_time = cpuTime();
         if (coop.solvers[0].verbosity > 0){
-            printf("|  Parse time:           %12.2f s                                                                                 |\n", parsed_time - initial_time);
-            printf("|                                                                                                                       |\n"); 
+            fprintf(stderr, "|  Parse time:           %12.2f s                                                                                 |\n", parsed_time - initial_time);
+            fprintf(stderr, "|                                                                                                                       |\n"); 
         }
 
-        printf("\n");
+        fprintf(stderr, "\n");
 
 
 
@@ -198,7 +196,7 @@ int main(int argc, char** argv)
         bson_iter_t iter, child2;
 
         if (!(uri_string = mongo_config(mongo_config_file))){
-            printf("Failed mongo config");
+            fprintf(stderr, "Failed mongo config");
             return 1;
         }
 
@@ -301,7 +299,7 @@ int main(int argc, char** argv)
                 sent = false;
             }
             else{
-                printf("Configuration sent\n");
+                fprintf(stderr, "Configuration sent\n");
             }
 
             bson_destroy(document);
@@ -332,7 +330,7 @@ int main(int argc, char** argv)
             }
 
             if(sent)
-                printf("Items sent\n");
+                fprintf(stderr, "Items sent\n");
 
             bson_destroy(document);
             mongoc_collection_destroy(collection);
@@ -368,7 +366,7 @@ int main(int argc, char** argv)
             }
 
             if(sent)
-                printf("Tab transactions sent\n");
+                fprintf(stderr, "Tab transactions sent\n");
 
             mongoc_collection_destroy(collection);
 
@@ -400,13 +398,13 @@ int main(int argc, char** argv)
             }
 
             if(sent)
-                printf("Appear trans sent\n");
+                fprintf(stderr, "Appear trans sent\n");
 
             mongoc_collection_destroy(collection);
             mongoc_database_destroy(database);
         }
 
-        printf("\n");
+        fprintf(stderr, "\n");
 
 
 
@@ -568,7 +566,7 @@ int main(int argc, char** argv)
 
         fclose(log);
 
-        printf("\n");
+        fprintf(stderr, "\n");
 
 
 
@@ -619,7 +617,7 @@ int main(int argc, char** argv)
 			}
 		}
 
-        printf("Models received\n");
+        fprintf(stderr, "Models received\n");
 
 		mongoc_cursor_destroy(cursor);
         mongoc_collection_destroy(collection);
@@ -635,7 +633,7 @@ int main(int argc, char** argv)
 
 	    lbool result;
 
-        printf("\n");
+        fprintf(stderr, "\n");
 
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
@@ -643,8 +641,8 @@ int main(int argc, char** argv)
         return (result == l_True ? 10 : result == l_False ? 20 : 0);
 #endif
     } catch (OutOfMemoryException&){
-        printf("===============================================================================\n");
-        printf("INDETERMINATE\n");
+        fprintf(stderr, "===============================================================================\n");
+        fprintf(stderr, "INDETERMINATE\n");
         exit(0);
     }
 }

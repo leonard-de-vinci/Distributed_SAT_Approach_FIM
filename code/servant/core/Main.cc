@@ -107,9 +107,9 @@ int main(int argc, char** argv)
 	  		coop.solvers[t].verbosity = verb;
 		}
 
-		printf(" -----------------------------------------------------------------------------------------------------------------------\n");
-		printf("|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
-		printf(" -----------------------------------------------------------------------------------------------------------------------\n");
+		fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
+		fprintf(stderr, "|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
+		fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
 
 
     	// Set limit on CPU-time:
@@ -119,7 +119,7 @@ int main(int argc, char** argv)
         	if (rl.rlim_max == RLIM_INFINITY || (rlim_t)cpu_lim < rl.rlim_max){
             	rl.rlim_cur = cpu_lim;
             	if (setrlimit(RLIMIT_CPU, &rl) == -1)
-                	printf("WARNING! Could not set resource limit: CPU-time.\n");
+                	fprintf(stderr, "WARNING! Could not set resource limit: CPU-time.\n");
         	} 
 		}
 
@@ -131,11 +131,11 @@ int main(int argc, char** argv)
         	if (rl.rlim_max == RLIM_INFINITY || new_mem_lim < rl.rlim_max){
             	rl.rlim_cur = new_mem_lim;
             	if (setrlimit(RLIMIT_AS, &rl) == -1)
-                	printf("WARNING! Could not set resource limit: Virtual memory.\n");
+                	fprintf(stderr, "WARNING! Could not set resource limit: Virtual memory.\n");
         	}
 		}
 		
-		printf("\n");
+		fprintf(stderr, "\n");
 
 
 
@@ -170,7 +170,7 @@ int main(int argc, char** argv)
 		vec<Lit> trans_temp;
 
 		if (!(uri_string = mongo_config(mongo_config_file))){
-            printf("Failed mongo config");
+            fprintf(stderr, "Failed mongo config");
             return 1;
         }
 
@@ -205,7 +205,7 @@ int main(int argc, char** argv)
             fprintf (stderr, "%s\n", error.message);
         }
         else{
-            printf("Solver configuration sent\n\n");
+            fprintf(stderr, "Solver configuration sent\n\n");
         }
 
         bson_destroy(document);
@@ -214,7 +214,7 @@ int main(int argc, char** argv)
 
 		//Database pull
 
-		printf("Retrieving dataset...\n");
+		fprintf(stderr, "Retrieving dataset...\n");
 
 
         database = mongoc_client_get_database(client, "dataset");
@@ -260,7 +260,7 @@ int main(int argc, char** argv)
 		mongoc_cursor_destroy(cursor);
 		mongoc_collection_destroy(collection);
 
-		printf("Database configuration received\n");
+		fprintf(stderr, "Database configuration received\n");
 
 		//Items
 		collection = mongoc_client_get_collection(client, "dataset", "items");
@@ -298,7 +298,7 @@ int main(int argc, char** argv)
 			fprintf(stderr, "failed to retrieve all items, number of items: %d", items_temp.size());
 			return EXIT_FAILURE;
 		}
-		printf("Items received\n");
+		fprintf(stderr, "Items received\n");
 
 		//Tab Transactions
 		collection = mongoc_client_get_collection(client, "dataset", "tab_transactions");
@@ -336,7 +336,7 @@ int main(int argc, char** argv)
 		mongoc_cursor_destroy(cursor);
 		mongoc_collection_destroy(collection);
 
-		printf("Tab transactions received\n");
+		fprintf(stderr, "Tab transactions received\n");
 
 		//Appear Trans
 		collection = mongoc_client_get_collection(client, "dataset", "appear_trans");
@@ -369,7 +369,7 @@ int main(int argc, char** argv)
 		mongoc_cursor_destroy(cursor);
 		mongoc_collection_destroy(collection);
 
-		printf("Appear trans received\n");
+		fprintf(stderr, "Appear trans received\n");
 
 		mongoc_database_destroy(database);
 
@@ -381,16 +381,16 @@ int main(int argc, char** argv)
 			coop.solvers[t].nbTrans = coop.tabTransactions.size();
 		}
 
-		printf("\n");
+		fprintf(stderr, "\n");
 
 		if (coop.solvers[0].verbosity > 0){
-        	printf(" ===============================================[ Problem Statistics ]==================================================\n");
-        	printf("|                                                                                                                       |\n");
-        	printf("|                                                                                                                       |\n"); }
+        	fprintf(stderr, " ===============================================[ Problem Statistics ]==================================================\n");
+        	fprintf(stderr, "|                                                                                                                       |\n");
+        	fprintf(stderr, "|                                                                                                                       |\n"); }
         
 
-		printf("<> instance    : %s\n", "");
-		printf("<> nbThreads   : %d \n\n", nbThreads);
+		fprintf(stderr, "<> instance    : %s\n", "");
+		fprintf(stderr, "<> nbThreads   : %d \n\n", nbThreads);
 	
 		omp_set_num_threads(nbThreads);
 		
@@ -404,11 +404,11 @@ int main(int argc, char** argv)
 	  		if (res != NULL)
 				fprintf(res, "UNSAT\n"), fclose(res);
 	  		if (coop.solvers[0].verbosity > 0){
-	    		printf("========================================================================================================================\n");
-	    		printf("Solved by unit propagation\n");
-	    		printf("\n"); 
+	    		fprintf(stderr, "========================================================================================================================\n");
+	    		fprintf(stderr, "Solved by unit propagation\n");
+	    		fprintf(stderr, "\n"); 
 			}
-	  		printf("UNSATISFIABLE\n");
+	  		fprintf(stderr, "UNSATISFIABLE\n");
 	  		exit(20);
        	}
 
@@ -546,7 +546,7 @@ int main(int argc, char** argv)
         /* Destroy the consumer */
         rd_kafka_destroy(rk);
 
-		printf("\n");
+		fprintf(stderr, "\n");
 
 		for(int i = 0; i < 2 * nbThreads; i++)
 			coop.guiding_path.push_back(coop.guiding_path.at(coop.guiding_path.size() - 1) + 1);
@@ -573,23 +573,23 @@ int main(int argc, char** argv)
 	
 		int cpt = 0;
 		// each worker print its models
-		printf("-----------------------------------------------\n");
-		printf("thread | nb models          | nb conflicts    |\n");
-		printf("-----------------------------------------------\n");
+		fprintf(stderr, "-----------------------------------------------\n");
+		fprintf(stderr, "thread | nb models          | nb conflicts    |\n");
+		fprintf(stderr, "-----------------------------------------------\n");
 
 		int nbcls = 0;
 		for(int t = 0; t < coop.nThreads(); t++){
 			cpt +=  coop.solvers[t].nbModels;
 			nbcls += coop.solvers[t].nbClauses;
-			printf("  %2d   |   %15d  | %d \n", t, coop.solvers[t].nbModels, (int)coop.solvers[t].conflicts);
+			fprintf(stderr, "  %2d   |   %15d  | %d \n", t, coop.solvers[t].nbModels, (int)coop.solvers[t].conflicts);
 		}
-		printf("-----------------------------------------------\n");
-		printf("total  | %15d    | \n", cpt);
-		printf("-----------------------------------------------\n");
+		fprintf(stderr, "-----------------------------------------------\n");
+		fprintf(stderr, "total  | %15d    | \n", cpt);
+		fprintf(stderr, "-----------------------------------------------\n");
 		
-		printf("#total Clauses  : %15d     \n", nbcls);
+		fprintf(stderr, "#total Clauses  : %15d     \n", nbcls);
 
-		printf("\n");
+		fprintf(stderr, "\n");
 
 
 
@@ -599,7 +599,7 @@ int main(int argc, char** argv)
 //		|                                                       |
 //		+-------------------------------------------------------+
 
-		printf("Sending models...\n");
+		fprintf(stderr, "Sending models...\n");
 
 		database = mongoc_client_get_database(client, "solvers");
 		collection = mongoc_client_get_collection(client, "solvers", "models");
@@ -627,7 +627,7 @@ int main(int argc, char** argv)
         }
 
         if(sent)
-            printf("Models sent\n");
+            fprintf(stderr, "Models sent\n");
 
         mongoc_collection_destroy(collection);
 
@@ -657,14 +657,14 @@ int main(int argc, char** argv)
         bson_destroy(document);
 
 		if(sent)
-            printf("Solver finish status sent\n");
+            fprintf(stderr, "Solver finish status sent\n");
 
 		mongoc_collection_destroy(collection);
 		mongoc_database_destroy(database);
 		mongoc_client_destroy(client);
         mongoc_cleanup();
 
-		printf("\n");
+		fprintf(stderr, "\n");
        
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
@@ -672,8 +672,8 @@ int main(int argc, char** argv)
         return (result == l_True ? 10 : result == l_False ? 20 : 0);
 #endif
     } catch (OutOfMemoryException&){
-        printf("===============================================================================\n");
-        printf("INDETERMINATE\n");
+        fprintf(stderr, "===============================================================================\n");
+        fprintf(stderr, "INDETERMINATE\n");
         exit(0);
     }
 }
