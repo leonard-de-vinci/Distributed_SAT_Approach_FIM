@@ -462,15 +462,20 @@ int main(int argc, char** argv)
 
         //Guiding_Path
 
-        for(int i = coop.div_begining; run && i < (coop.items.size() + nsolvers); i++){
-            if(i >= coop.items.size()){
+        for(int i = coop.div_begining; run && i < (coop.items.size() + (2 * nsolvers)); i++){
+            if(i >= coop.items.size() + nsolvers){
                 sprintf(buff, "end");
+                len = strlen(buff);
+            }
+            else if(i >= coop.items.size()){
+                sprintf(buff, "%d", coop.items.size());
                 len = strlen(buff);
             }
             else{
                 sprintf(buff, "%d", i);
                 len = strlen(buff);
             }
+
 
             if(partition == nsolvers - 1)
                 partition = 0;
@@ -546,9 +551,6 @@ int main(int argc, char** argv)
              * delivery report callback served (and any other callbacks
              * you register). */
             rd_kafka_poll(rk, 0/*non-blocking*/);
-
-            if(i == coop.items.size() + nsolvers - 1)
-                run = false;
         }
 
         fprintf(stderr, "%% Flushing final messages..\n");
