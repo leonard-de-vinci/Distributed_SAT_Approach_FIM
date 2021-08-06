@@ -514,7 +514,7 @@ int main(int argc, char** argv)
             }
 
             /* Proper message. */
-            fprintf(log, "%s | %%Message on %s [%"PRId32"] at offset %"PRId64":\n", gettime(), rd_kafka_topic_name(rkm->rkt), rkm->partition, rkm->offset);
+            fprintf(log, "%s | %%Message on %s [%"PRId32"] at offset %"PRId64": %s\n", gettime(), rd_kafka_topic_name(rkm->rkt), rkm->partition, rkm->offset, (const char *)rkm->payload);
 
             // /* Print the message key. */
             // if((const char *)rkm->key && is_printable((const char *)rkm->key, rkm->key_len))
@@ -548,7 +548,7 @@ int main(int argc, char** argv)
 
 		fprintf(stderr, "\n");
 
-		for(int i = 0; i < 2 * nbThreads; i++)
+		for(int i = 0; i < nbThreads; i++)
 			coop.guiding_path.push_back(coop.guiding_path.at(coop.guiding_path.size() - 1) + 1);
 
 		coop.div_begining = coop.guiding_path[0];
