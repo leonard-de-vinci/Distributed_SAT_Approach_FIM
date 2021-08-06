@@ -130,7 +130,7 @@ bool Cooperation::addTransactions(vec<Lit>& ps)
     fprintf(stderr, "|   DataBase Description          |--<>- transactions     : %10d      |\n", tabTransactions.size());
     fprintf(stderr, "| +++++++++++++++++++++++++     +-|-+                                       | \n");
     fprintf(stderr, "|                               +-|-+                                       | \n");
-    fprintf(stderr, "|                                 |--<>-  infrequent items : %10d     |\n",div_begining);
+    fprintf(stderr, "|                                 |--<>- infrequent items : %10d      |\n",div_begining);
     fprintf(stderr, "|                                 |--<>- min support      : %10d      |\n", min_supp);
     fprintf(stderr, "|                                 |                                         | \n");
     fprintf(stderr, "+---------------------------------------------------------------------------+\n\n");
