@@ -1116,19 +1116,19 @@ void Solver::addClosureConstraint(vec<Lit>& trans, vec<Lit>& app){
 *********************************************************************************/
 void Solver::addSupportConstraint(int num, vec<Lit>& lastTrans, vec<Lit>& items){
     
-  vec<Lit> block_lits;
+  /*vec<Lit> block_lits;
   lastTrans.copyTo(block_lits);
   block_lits.push(mkLit(num, true));
-  addClause(block_lits);
+  addClause(block_lits);*/
 
   vec<Lit> liste;
 
   for(int i = 0; i < lastTrans.size(); i++) seen[var(lastTrans[i])] = 1;
-  for(int i = 0; i < items.size(); i++) 
+  /*for(int i = 0; i < items.size(); i++) 
     if(!seen[var(items[i])] && !useless[var(items[i])])
       liste.push(items[i]);
   liste.push(mkLit(num, false));
-  addClause(liste);
+  addClause(liste);*/
 
   for(int i = 0; i < items.size(); i++){
     vec<Lit> binClause;
