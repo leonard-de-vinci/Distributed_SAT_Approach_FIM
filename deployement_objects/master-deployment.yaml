@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.23.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: master
+  name: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: master
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.23.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: master
+    spec:
+      containers:
+        - env:
+            - name: DATASET
+              value: ../../../data/retail.dat
+            - name: KAFKAADDR
+              value: broker
+            - name: KAFKAPORT
+              value: "9092"
+            - name: MINSUPPORT
+              value: "500"
+            - name: MONGOADDR
+              value: mongodb
+            - name: MONGOPASS
+              value: root
+            - name: MONGOPORT
+              value: "27017"
+            - name: MONGOUSER
+              value: root
+            - name: NSOLVERS
+              value: "2"
+            - name: RESET
+              value: "0"
+          image: master
+          name: master
+          resources: {}
+      restartPolicy: Always
+status: {}
