@@ -21,7 +21,7 @@ spec:
         kompose.version: 1.23.0 (HEAD)
       creationTimestamp: null
       labels:
-        io.kompose.service: slave-1
+        io.kompose.service: slave
     spec:
       containers:
         - env:
@@ -46,7 +46,7 @@ spec:
             - name: NCORES
               value: "2"
           image: servant
-          name: solver1
+          name: solver
           resources: {}
       restartPolicy: Always
 status: {}
