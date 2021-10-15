@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 		}
 
 		fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
-		fprintf(stderr, "|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
+		fprintf(stderr, "|                                 DSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
 		fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
 
 

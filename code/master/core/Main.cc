@@ -113,7 +113,7 @@ int main(int argc, char** argv)
             datareset = true;
 
 	    fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
-	    fprintf(stderr, "|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
+	    fprintf(stderr, "|                                         DSATMiner    %i solver(s)                                                     |\n", nsolvers); 
 	    fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
 
         // Set limit on CPU-time:
