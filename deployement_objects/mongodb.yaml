@@ -30,7 +30,7 @@ spec:
               value: root
             - name: MONGO_INITDB_ROOT_USERNAME
               value: root
-          image: mongo
+          image: s3.dvic.devinci.fr/clusterspeed/mongo:latest
           name: mongodb
           ports:
             - containerPort: 27017
@@ -39,8 +39,32 @@ spec:
             - mountPath: /Users/Flexiboy/Desktop/Courses/Distributed_SAT_Approach/data/db
               name: mongodb-claim0
       restartPolicy: Always
+      imagePullSecrets: 
+      - name: regcred
       volumes:
         - name: mongodb-claim0
           persistentVolumeClaim:
             claimName: mongodb-claim0
 status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.23.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: mongodb
+  name: mongodb
+spec:
+  ports:
+    - name: "27017"
+      port: 27017
+      targetPort: 27017
+  selector:
+    io.kompose.service: mongodb
+status:
+  loadBalancer: {}

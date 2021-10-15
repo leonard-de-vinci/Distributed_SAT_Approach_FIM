@@ -30,23 +30,25 @@ spec:
             - name: KAFKAADDR
               value: broker
             - name: KAFKAPORT
-              value: "9092"
+              value: 9092
             - name: MINSUPPORT
-              value: "500"
+              value: 500
             - name: MONGOADDR
               value: mongodb
             - name: MONGOPASS
               value: root
             - name: MONGOPORT
-              value: "27017"
+              value: 27017
             - name: MONGOUSER
               value: root
             - name: NSOLVERS
-              value: "2"
+              value: 2
             - name: RESET
-              value: "0"
-          image: master
+              value: 0
+          image: s3.dvic.devinci.fr/clusterspeed/master:latest
           name: master
           resources: {}
-      restartPolicy: Always
+      imagePullSecrets: 
+        - name: regcred
+      restartPolicy: OnFailure
 status: {}

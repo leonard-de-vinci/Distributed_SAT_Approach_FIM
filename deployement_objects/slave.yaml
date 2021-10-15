@@ -9,7 +9,7 @@ metadata:
     io.kompose.service: slave
   name: slave
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       io.kompose.service: slave
@@ -44,9 +44,11 @@ spec:
             - name: MONGOUSER
               value: root
             - name: NCORES
-              value: "2"
-          image: servant
+              value: "1"
+          image: s3.dvic.devinci.fr/clusterspeed/slave:latest
           name: solver
           resources: {}
-      restartPolicy: Always
+      imagePullSecrets:
+        - name: regcred
+      restartPolicy: OnFailure
 status: {}

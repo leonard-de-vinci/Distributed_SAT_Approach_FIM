@@ -26,7 +26,7 @@ spec:
       containers:
         - env:
             - name: KAFKA_ADVERTISED_LISTENERS
-              value: PLAINTEXT://broker:9092,PLAINTEXT_HOST://localhost:29092
+              value: PLAINTEXT://broker.dvrc.svc.cluster.local:29092
             - name: KAFKA_BROKER_ID
               value: "1"
             - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
@@ -34,7 +34,7 @@ spec:
             - name: KAFKA_INTER_BROKER_LISTENER_NAME
               value: PLAINTEXT
             - name: KAFKA_LISTENERS
-              value: PLAINTEXT://broker:9092, PLAINTEXT_HOST://localhost:29092
+              value: PLAINTEXT://0.0.0.0:29092
             - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
               value: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
             - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
@@ -42,7 +42,7 @@ spec:
             - name: KAFKA_TOOLS_LOG4J_LOGLEVEL
               value: ERROR
             - name: KAFKA_ZOOKEEPER_CONNECT
-              value: zookeeper:2181
+              value: zookeeper.dvrc.svc.cluster.local:2181
           image: confluentinc/cp-kafka:latest
           name: broker
           ports:
@@ -51,3 +51,25 @@ spec:
       hostname: broker
       restartPolicy: Always
 status: {}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.23.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: broker
+  name: broker
+spec:
+  ports:
+    - name: "29092"
+      port: 29092
+      targetPort: 29092
+  selector:
+    io.kompose.service: broker
+status:
+  loadBalancer: {}
