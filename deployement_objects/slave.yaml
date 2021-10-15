@@ -26,25 +26,25 @@ spec:
       containers:
         - env:
             - name: KAFKAADDR
-              value: broker
+              value: broker.dvrc.svc.cluster.local
             - name: KAFKAGROUP
               value: solvers
             - name: KAFKAOFTRST
               value: earliest
             - name: KAFKAPORT
-              value: "9092"
+              value: 29092
             - name: MINSUPPORT
-              value: "500"
+              value: 500
             - name: MONGOADDR
               value: mongodb
             - name: MONGOPASS
               value: root
             - name: MONGOPORT
-              value: "27017"
+              value: 27017
             - name: MONGOUSER
               value: root
             - name: NCORES
-              value: "1"
+              value: 1
           image: s3.dvic.devinci.fr/clusterspeed/slave:latest
           name: solver
           resources: {}

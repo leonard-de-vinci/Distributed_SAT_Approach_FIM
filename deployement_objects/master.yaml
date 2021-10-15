@@ -28,9 +28,9 @@ spec:
             - name: DATASET
               value: ../../../data/retail.dat
             - name: KAFKAADDR
-              value: broker
+              value: broker.dvrc.svc.cluster.local
             - name: KAFKAPORT
-              value: 9092
+              value: 29092
             - name: MINSUPPORT
               value: 500
             - name: MONGOADDR
