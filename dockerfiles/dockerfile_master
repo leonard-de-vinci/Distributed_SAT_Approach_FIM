@@ -10,8 +10,8 @@ ENV MONGOPASS=root
 ENV MONGOADDR=mongodb
 ENV MONGOPORT=27017
 
-ENV KAFKAADDR=broker
-ENV KAFKAPORT=9092
+ENV KAFKAADDR=broker.dvrc.svc.cluster.local
+ENV KAFKAPORT=29092
 
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 
@@ -30,4 +30,4 @@ RUN cd code/master/core\
 
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/master/core
 
-CMD ./master -minSupport=${MINSUPPORT} -nsolvers=${NSOLVERS} -reset=${RESET} ${DATASET}
+ENTRYPOINT ./master -minSupport=${MINSUPPORT} -nsolvers=${NSOLVERS} -reset=${RESET} ${DATASET}
