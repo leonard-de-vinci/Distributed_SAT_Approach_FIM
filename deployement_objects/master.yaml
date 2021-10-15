@@ -30,21 +30,21 @@ spec:
             - name: KAFKAADDR
               value: broker.dvrc.svc.cluster.local
             - name: KAFKAPORT
-              value: 29092
+              value: "29092"
             - name: MINSUPPORT
-              value: 500
+              value: "500"
             - name: MONGOADDR
               value: mongodb
             - name: MONGOPASS
               value: root
             - name: MONGOPORT
-              value: 27017
+              value: "27017"
             - name: MONGOUSER
               value: root
             - name: NSOLVERS
-              value: 2
+              value: "2"
             - name: RESET
-              value: 0
+              value: "0"
           image: s3.dvic.devinci.fr/clusterspeed/master:latest
           name: master
           resources: {}
