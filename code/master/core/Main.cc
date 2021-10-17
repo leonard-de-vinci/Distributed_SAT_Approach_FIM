@@ -643,6 +643,8 @@ int main(int argc, char** argv)
 
         fprintf(stderr, "\n");
 
+        fprintf(stderr, "Press Enter to continue...%c", getchar());
+
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
 #else
