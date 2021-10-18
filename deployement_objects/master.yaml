@@ -50,5 +50,5 @@ spec:
           resources: {}
       imagePullSecrets: 
         - name: regcred
-      restartPolicy: OnFailure
+      restartPolicy: Always
 status: {}
