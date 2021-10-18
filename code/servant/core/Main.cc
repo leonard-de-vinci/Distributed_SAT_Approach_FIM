@@ -685,6 +685,8 @@ int main(int argc, char** argv)
         mongoc_cleanup();
 
 		fprintf(stderr, "\n");
+
+		delay(3600);
        
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')

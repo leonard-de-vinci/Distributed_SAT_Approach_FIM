@@ -241,7 +241,7 @@ int main(int argc, char** argv)
 		do
 		{
 			delay(1000);
-		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != nsolvers);
+		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != nbsolvers);
 
 		while(mongoc_cursor_next(cursor, &config)){
 			if(bson_iter_init(&iter, config)){
@@ -282,7 +282,7 @@ int main(int argc, char** argv)
             BSON_APPEND_OID(document, "_id", &oid);
 
             BSON_APPEND_DOCUMENT_BEGIN(document, "nsolvers", &child);
-            BSON_APPEND_INT32(&child, "number", nsolvers);
+            BSON_APPEND_INT32(&child, "number", nbsolvers);
             bson_append_document_end(document, &child);
 
             BSON_APPEND_DOCUMENT_BEGIN(document, "items", &child);
@@ -416,7 +416,7 @@ int main(int argc, char** argv)
 //		|                       Kafka                           |
 //		|                                                       |
 //		+-------------------------------------------------------+
-        kafka:;
+        //kafka:;
         rd_kafka_t *rk; //producer instance handle
         rd_kafka_conf_t *conf; //temporary configuration object
         char errstr[512]; //librdkafka API error reporting buffer
@@ -573,12 +573,6 @@ int main(int argc, char** argv)
 
         fprintf(stderr, "\n");
 
-        /* Destroy the topic */
-        delete_topic(rk, topic);
-
-        /* Destroy the producer instance */
-        rd_kafka_destroy(rk);
-
 
 
 //		+-------------------------------------------------------+
@@ -609,11 +603,11 @@ int main(int argc, char** argv)
                 previous_count = count;
             }
             delay(1000);
-            wait_time++;
-            if(wait_time > 300){
-                nbsolvers = count;
-                goto kafka;
-            }
+            // wait_time++;
+            // if(wait_time > 300){
+            //     nbsolvers = count;
+            //     goto kafka;
+            // }
         }while((count = mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error)) != nsolvers);
 
         mongoc_cursor_destroy(cursor);
@@ -672,6 +666,12 @@ int main(int argc, char** argv)
 				}
 			}
 		}
+
+        /* Destroy the topic */
+        delete_topic(rk, topic);
+
+        /* Destroy the producer instance */
+        rd_kafka_destroy(rk);
 
 		mongoc_cursor_destroy(cursor);
         mongoc_collection_destroy(collection);
