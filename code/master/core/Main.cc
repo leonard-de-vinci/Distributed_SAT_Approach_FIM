@@ -113,7 +113,7 @@ int main(int argc, char** argv)
             datareset = true;
 
 	    fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
-	    fprintf(stderr, "|                                         DSATMiner    %i solver(s)                                                     |\n", nsolvers); 
+	    fprintf(stderr, "|                                         DSATMiner    %d solver(s)                                                     |\n", (int)nsolvers); 
 	    fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
 
         // Set limit on CPU-time:
@@ -176,12 +176,14 @@ int main(int argc, char** argv)
 
         const char *mongo_config_file = "mongo.config";
         const char *key;
-        const bson_t *config;
+        const bson_t *config, *solving_time;
         const bson_value_t *value;
         char *uri_string;
         char temp[30] = {0};
         bool sent = true;
         int val = 0;
+        int start_time[(int)nsolvers];
+        int end_time[(int)nsolvers];
         size_t keylen;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
@@ -585,6 +587,7 @@ int main(int argc, char** argv)
         results = fopen("Models.txt", "a");
         int count = 0;
         int previous_count = 0;
+        int index = 0;
 
         database = mongoc_client_get_database(client, "solvers");
 		query = bson_new();
@@ -627,6 +630,34 @@ int main(int argc, char** argv)
 
         fprintf(stderr, "Models received\n");
 
+        mongoc_cursor_destroy(cursor);
+        mongoc_collection_destroy(collection);
+
+        collection = mongoc_client_get_collection(client, "solvers", "finished");
+        cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
+
+        while(mongoc_cursor_next(cursor, &solving_time)){
+			if(bson_iter_init(&iter, solving_time)){
+				while(bson_iter_next(&iter)){
+					key = bson_iter_key(&iter);
+					if(bson_iter_init_find(&iter, solving_time, key) && BSON_ITER_HOLDS_DOCUMENT(&iter) && bson_iter_recurse(&iter, &child2)){
+						while(bson_iter_next(&child2)){
+							value = bson_iter_value(&child2);
+							if(!(value->value_type == BSON_TYPE_DOUBLE)){
+								fprintf(stderr, "failed to parse document: %s in collection config", key);
+								return EXIT_FAILURE;
+							}
+							if(strcmp(key, "start_time") == 0)
+								start_time[index] = value->value.v_int32;
+                            else if(strcmp(key, "end_time") == 0)
+                                end_time[index] = value->value.v_int32;
+						}
+					}
+                    index++;
+				}
+			}
+		}
+
 		mongoc_cursor_destroy(cursor);
         mongoc_collection_destroy(collection);
 		mongoc_database_destroy(database);
@@ -640,6 +671,21 @@ int main(int argc, char** argv)
         rd_kafka_destroy(rk);
 
 	    lbool result;
+
+        int min_start = start_time[0];
+        int max_end = end_time[0];
+
+        for(int i = 0; i < nsolvers; i++){
+            if(min_start > start_time[i])
+                min_start = start_time[i];
+            if(max_end < end_time[i])
+                max_end = end_time[i];
+        }
+
+        char user_time[6];
+        sprintf(user_time, "%d", max_end - min_start);
+
+        fprintf(stderr, "User time: %s", user_time);
 
         fprintf(stderr, "\n");
 

@@ -99,6 +99,9 @@ int main(int argc, char** argv)
 		int nbThreads   = ncores;
 		int nsolvers	= 0;
 		Cooperation coop(nbThreads);
+		time_t rawtime;
+		struct tm *start_date;
+		struct tm *end_date;
 	
 		coop.min_supp = Freq;
 	
@@ -557,6 +560,8 @@ int main(int argc, char** argv)
 		lbool result;
 		double time_elapsed = 0.0;
 		clock_t begin = clock();
+		time(&rawtime);
+		start_date = localtime(&rawtime);
 	
 		// launch threads in Parallel 	
 
@@ -570,6 +575,8 @@ int main(int argc, char** argv)
 
 		clock_t end = clock();
 		time_elapsed += (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
+		time(&rawtime);
+		end_date = localtime(&rawtime);
 	
 		int cpt = 0;
 		// each worker print its models
@@ -648,6 +655,18 @@ int main(int argc, char** argv)
 		BSON_APPEND_DOCUMENT_BEGIN(document, "time_elapsed", &child2);
         BSON_APPEND_DOUBLE(&child2, "processing time (in ms)", time_elapsed);
         bson_append_document_end(document, &child2);
+
+		BSON_APPEND_DOCUMENT_BEGIN(document, "start_time", &child2);
+        sprintf(temp, "");
+		strftime(temp, 30, "%H%M%S", start_date);
+		BSON_APPEND_INT32(&child2, "start time", atoi(temp));
+        bson_append_document_end(document, &child2);
+
+		BSON_APPEND_DOCUMENT_BEGIN(document, "end_time", &child2);
+		sprintf(temp, "");
+		strftime(temp, 30, "%H%M%S", end_date);
+		BSON_APPEND_INT32(&child2, "end time", atoi(temp));
+		bson_append_document_end(document, &child2);
 
 		if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
             fprintf (stderr, "%s\n", error.message);
