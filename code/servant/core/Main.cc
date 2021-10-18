@@ -99,7 +99,8 @@ int main(int argc, char** argv)
 		int nbThreads   = ncores;
 		int nsolvers	= 0;
 		Cooperation coop(nbThreads);
-		time_t rawtime;
+		time_t rawtime1;
+		time_t rawtime2;
 		struct tm *start_date;
 		struct tm *end_date;
 	
@@ -560,8 +561,8 @@ int main(int argc, char** argv)
 		lbool result;
 		double time_elapsed = 0.0;
 		clock_t begin = clock();
-		time(&rawtime);
-		start_date = localtime(&rawtime);
+		time(&rawtime1);
+		start_date = localtime(&rawtime1);
 	
 		// launch threads in Parallel 	
 
@@ -575,8 +576,8 @@ int main(int argc, char** argv)
 
 		clock_t end = clock();
 		time_elapsed += (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
-		time(&rawtime);
-		end_date = localtime(&rawtime);
+		time(&rawtime2);
+		end_date = localtime(&rawtime2);
 	
 		int cpt = 0;
 		// each worker print its models

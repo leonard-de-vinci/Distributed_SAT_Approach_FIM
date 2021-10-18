@@ -108,12 +108,13 @@ int main(int argc, char** argv)
         vec<int> solvers_config;
         int totalcores = 0;
         bool datareset = false;
+        int nbsolvers = (int)nsolvers;
 
         if(reset == 0)
             datareset = true;
 
 	    fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
-	    fprintf(stderr, "|                                         DSATMiner    %d solver(s)                                                     |\n", (int)nsolvers); 
+	    fprintf(stderr, "|                                         DSATMiner on %d solver(s)                                                     |\n", (int)nsolvers); 
 	    fprintf(stderr, " -----------------------------------------------------------------------------------------------------------------------\n");
 
         // Set limit on CPU-time:
@@ -182,8 +183,8 @@ int main(int argc, char** argv)
         char temp[30] = {0};
         bool sent = true;
         int val = 0;
-        int start_time[(int)nsolvers];
-        int end_time[(int)nsolvers];
+        int start_time[nbsolvers];
+        int end_time[nbsolvers];
         size_t keylen;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
@@ -415,7 +416,7 @@ int main(int argc, char** argv)
 //		|                       Kafka                           |
 //		|                                                       |
 //		+-------------------------------------------------------+
-
+        kafka:;
         rd_kafka_t *rk; //producer instance handle
         rd_kafka_conf_t *conf; //temporary configuration object
         char errstr[512]; //librdkafka API error reporting buffer
@@ -460,12 +461,12 @@ int main(int argc, char** argv)
         /* Signal handler for clean shutdown */
         signal(SIGINT, stop);
 
-        create_topic(rk, topic, (int)nsolvers);
+        create_topic(rk, topic, nbsolvers);
 
         //Guiding_Path
 
-        for(int i = coop.div_begining; run && i < (coop.items.size() + (2 * nsolvers)); i++){
-            if(i >= coop.items.size() + nsolvers){
+        for(int i = coop.div_begining; run && i < (coop.items.size() + (2 * nbsolvers)); i++){
+            if(i >= coop.items.size() + nbsolvers){
                 sprintf(buff, "end");
                 len = strlen(buff);
             }
@@ -479,7 +480,7 @@ int main(int argc, char** argv)
             }
 
 
-            if(partition == (int)nsolvers - 1)
+            if(partition == nbsolvers - 1)
                 partition = 0;
             else
                 partition++;
@@ -572,6 +573,12 @@ int main(int argc, char** argv)
 
         fprintf(stderr, "\n");
 
+        /* Destroy the topic */
+        delete_topic(rk, topic);
+
+        /* Destroy the producer instance */
+        rd_kafka_destroy(rk);
+
 
 
 //		+-------------------------------------------------------+
@@ -588,6 +595,7 @@ int main(int argc, char** argv)
         int count = 0;
         int previous_count = 0;
         int index = 0;
+        int wait_time = 0;
 
         database = mongoc_client_get_database(client, "solvers");
 		query = bson_new();
@@ -601,6 +609,11 @@ int main(int argc, char** argv)
                 previous_count = count;
             }
             delay(1000);
+            wait_time++;
+            if(wait_time > 300){
+                nbsolvers = count;
+                goto kafka;
+            }
         }while((count = mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error)) != nsolvers);
 
         mongoc_cursor_destroy(cursor);
@@ -666,18 +679,12 @@ int main(int argc, char** argv)
         mongoc_client_destroy(client);
         mongoc_cleanup();
 
-        /* Destroy the topic */
-        delete_topic(rk, topic);
-
-        /* Destroy the producer instance */
-        rd_kafka_destroy(rk);
-
 	    lbool result;
 
         int min_start = start_time[0];
         int max_end = end_time[0];
 
-        for(int i = 0; i < nsolvers; i++){
+        for(int i = 0; i < nbsolvers; i++){
             if(min_start > start_time[i])
                 min_start = start_time[i];
             if(max_end < end_time[i])
