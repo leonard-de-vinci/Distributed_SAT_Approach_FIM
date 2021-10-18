@@ -460,7 +460,7 @@ int main(int argc, char** argv)
         /* Signal handler for clean shutdown */
         signal(SIGINT, stop);
 
-        create_topic(rk, topic, nsolvers);
+        create_topic(rk, topic, (int)nsolvers);
 
         //Guiding_Path
 
@@ -479,7 +479,7 @@ int main(int argc, char** argv)
             }
 
 
-            if(partition == nsolvers - 1)
+            if(partition == (int)nsolvers - 1)
                 partition = 0;
             else
                 partition++;
@@ -643,14 +643,16 @@ int main(int argc, char** argv)
 					if(bson_iter_init_find(&iter, solving_time, key) && BSON_ITER_HOLDS_DOCUMENT(&iter) && bson_iter_recurse(&iter, &child2)){
 						while(bson_iter_next(&child2)){
 							value = bson_iter_value(&child2);
-							if(!(value->value_type == BSON_TYPE_DOUBLE)){
+							if(!(value->value_type == BSON_TYPE_INT32 || value->value_type == BSON_TYPE_DOUBLE)){
 								fprintf(stderr, "failed to parse document: %s in collection config", key);
 								return EXIT_FAILURE;
 							}
-							if(strcmp(key, "start_time") == 0)
-								start_time[index] = value->value.v_int32;
-                            else if(strcmp(key, "end_time") == 0)
-                                end_time[index] = value->value.v_int32;
+							if(strcmp(key, "start_time") == 0){
+                                printf("%d", value->value.v_int32);
+								start_time[index] = value->value.v_int32;}
+                            else if(strcmp(key, "end_time") == 0){
+                                printf("%d", value->value.v_int32);
+                                end_time[index] = value->value.v_int32;}
 						}
 					}
                     index++;
@@ -690,6 +692,8 @@ int main(int argc, char** argv)
         fprintf(stderr, "\n");
 
         fprintf(stderr, "Press Enter to continue...%c", getchar());
+
+        delay(3600000);
 
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
