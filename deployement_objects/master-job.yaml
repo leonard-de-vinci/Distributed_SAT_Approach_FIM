@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    io.kompose.service: master
+  name: master
+spec:
+  template:
+    metadata:
+      labels:
+        io.kompose.service: master
+    spec:
+      containers:
+        - env:
+            - name: DATASET
+              value: ../../../data/retail.dat
+            - name: KAFKAADDR
+              value: broker.dvrc.svc.cluster.local
+            - name: KAFKAPORT
+              value: "29092"
+            - name: MINSUPPORT
+              value: "500"
+            - name: MONGOADDR
+              value: mongodb
+            - name: MONGOPASS
+              value: root
+            - name: MONGOPORT
+              value: "27017"
+            - name: MONGOUSER
+              value: root
+            - name: NSOLVERS
+              value: "2"
+            - name: RESET
+              value: "0"
+          image: s3.dvic.devinci.fr/clusterspeed/master:latest
+          name: master
+          resources: {}
+      imagePullSecrets: 
+        - name: regcred
+      restartPolicy: Never
+  backoffLimit: 5
+status: {}
