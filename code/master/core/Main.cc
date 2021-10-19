@@ -538,6 +538,7 @@ int main(int argc, char** argv)
                 }
                 else{
                     fprintf(log, "%s | %% Enqueued message \"%s\" (%zd bytes) for topic %s\n", gettime(), buff, len, topic);
+                    fprintf(stderr, "%s | %% Enqueued message \"%s\" (%zd bytes) for topic %s\n", gettime(), buff, len, topic);
                 }
             }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
 
@@ -667,6 +668,8 @@ int main(int argc, char** argv)
 			}
 		}
 
+        fprintf(stderr, "Models received\n");
+
         /* Destroy the topic */
         delete_topic(rk, topic);
 
@@ -680,6 +683,9 @@ int main(int argc, char** argv)
         mongoc_cleanup();
 
 	    lbool result;
+
+        fprintf(stderr, "Calculating user time...");
+        fprintf(stderr, "nbsolvers: %d", nbsolvers);
 
         int min_start = start_time[0];
         int max_end = end_time[0];

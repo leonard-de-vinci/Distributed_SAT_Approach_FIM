@@ -311,7 +311,7 @@ int main(int argc, char** argv)
 		do
 		{
 			delay(500);
-			fprintf(stderr, "n_trans: %d; n_docs: %d", n_trans, mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
+			fprintf(stderr, "On MongoDB, collection tab_transaction: n_trans: %d; n_docs: %d\n", n_trans, mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
 		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != n_trans);
 
 		while(mongoc_cursor_next(cursor, &tab_transactions)){
@@ -350,7 +350,7 @@ int main(int argc, char** argv)
 		do
 		{
 			delay(500);
-			fprintf(stderr, "n_appear_trans: %d; n_doc: %d", n_appear_trans, mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
+			fprintf(stderr, "On MongoDB, collection appear_trans: n_appear_trans: %d; n_doc: %d\n", n_appear_trans, mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
 		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != n_appear_trans);
 
 		while(mongoc_cursor_next(cursor, &appear_trans)){
@@ -521,6 +521,7 @@ int main(int argc, char** argv)
 
             /* Proper message. */
             fprintf(log, "%s | %%Message on %s [%"PRId32"] at offset %"PRId64": %s\n", gettime(), rd_kafka_topic_name(rkm->rkt), rkm->partition, rkm->offset, (const char *)rkm->payload);
+			fprintf(stderr, "%s | %%Message on %s [%"PRId32"] at offset %"PRId64": %s\n", gettime(), rd_kafka_topic_name(rkm->rkt), rkm->partition, rkm->offset, (const char *)rkm->payload);
 
             // /* Print the message key. */
             // if((const char *)rkm->key && is_printable((const char *)rkm->key, rkm->key_len))
@@ -686,9 +687,9 @@ int main(int argc, char** argv)
 		mongoc_client_destroy(client);
         mongoc_cleanup();
 
-		fprintf(stderr, "\n");
-
-		delay(3600);
+		fprintf(stderr, "\nTerminating...\n");
+		
+		delay(3600000);
        
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
