@@ -54,7 +54,7 @@ char *gettime(){
 
 void delay(int duration){
         clock_t start_time = clock();
-	while(clock() < start_time + duration)
+	while(clock() < start_time + (duration * CLOCKS_PER_SEC / 1000))
 		;
 }
 
@@ -704,7 +704,7 @@ int main(int argc, char** argv)
         fprintf(stderr, "max_end: %d, min_start: %d\n", max_end, min_start);
         fprintf(stderr, "max-min: %d\n", max_end - min_start);
 
-        char user_time[6];
+        char user_time[12];
         sprintf(user_time, "%d", max_end - min_start);
 
         fprintf(stderr, "User time: %s\n", user_time);
@@ -714,7 +714,6 @@ int main(int argc, char** argv)
         //fprintf(stderr, "Press Enter to continue...%c", getchar());
         while (1){
 			delay(60000);
-			fprintf(stderr, "Wait...\n");
 		}
 
 #ifdef NDEBUG
