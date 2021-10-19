@@ -668,7 +668,7 @@ int main(int argc, char** argv)
 			}
 		}
 
-        fprintf(stderr, "Models received\n");
+        fprintf(stderr, "Statistics received\n");
 
         /* Destroy the topic */
         delete_topic(rk, topic);
@@ -684,29 +684,38 @@ int main(int argc, char** argv)
 
 	    lbool result;
 
-        fprintf(stderr, "Calculating user time...");
-        fprintf(stderr, "nbsolvers: %d", nbsolvers);
+        fprintf(stderr, "Calculating user time...\n");
+        fprintf(stderr, "nbsolvers: %d\n", nbsolvers);
 
         int min_start = start_time[0];
         int max_end = end_time[0];
 
         for(int i = 0; i < nbsolvers; i++){
-            if(min_start > start_time[i])
+            if(min_start > start_time[i]){
                 min_start = start_time[i];
-            if(max_end < end_time[i])
+                fprintf(stderr, "min_start updated: %d\n", min_start);
+            }
+            if(max_end < end_time[i]){
                 max_end = end_time[i];
+                fprintf(stderr, "max_end updated: %d\n", max_end);
+            }
         }
+
+        fprintf(stderr, "max_end: %d, min_start: %d\n", max_end, min_start);
+        fprintf(stderr, "max-min: %d\n", max_end - min_start);
 
         char user_time[6];
         sprintf(user_time, "%d", max_end - min_start);
 
-        fprintf(stderr, "User time: %s", user_time);
+        fprintf(stderr, "User time: %s\n", user_time);
 
-        fprintf(stderr, "\n");
+        fprintf(stderr, "Terminating...\n");
 
-        fprintf(stderr, "Press Enter to continue...%c", getchar());
-
-        delay(3600000);
+        //fprintf(stderr, "Press Enter to continue...%c", getchar());
+        while (1){
+			delay(60000);
+			fprintf(stderr, "Wait...\n");
+		}
 
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
