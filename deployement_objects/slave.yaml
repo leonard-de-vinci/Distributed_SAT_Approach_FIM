@@ -9,7 +9,7 @@ metadata:
     io.kompose.service: slave
   name: slave
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       io.kompose.service: slave
@@ -50,5 +50,5 @@ spec:
           resources: {}
       imagePullSecrets:
         - name: regcred
-      restartPolicy: OnFailure
+      restartPolicy: Always
 status: {}

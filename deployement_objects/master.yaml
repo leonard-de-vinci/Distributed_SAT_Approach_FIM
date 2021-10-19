@@ -42,7 +42,7 @@ spec:
             - name: MONGOUSER
               value: root
             - name: NSOLVERS
-              value: "2"
+              value: "1"
             - name: RESET
               value: "0"
           image: s3.dvic.devinci.fr/clusterspeed/master:latest
