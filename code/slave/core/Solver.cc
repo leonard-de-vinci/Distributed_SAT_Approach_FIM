@@ -687,6 +687,7 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
     coop->processing_time.push();
     coop->processing_time[coop->processing_time.size()-1].push((double) ind);
     begin = clock();
+    fprintf(stderr, "Searching model for guiding path %d\n", ind);
     
     for (;;){
     
@@ -722,6 +723,7 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
           coop->processing_time.push();
           coop->processing_time[coop->processing_time.size()-1].push((double) ind);
           begin = clock();
+          fprintf(stderr, "Searching model for guiding path %d\n", ind);
         }
 	      
 	      if(ind >=  allItems.size()){
@@ -736,6 +738,7 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
         coop->processing_time.push();
         coop->processing_time[coop->processing_time.size()-1].push((double) ind);
         begin = clock();
+        fprintf(stderr, "Searching model for guiding path %d\n", ind);
 	      goto Prop;
 	    }else{
 	      return l_False;
@@ -872,6 +875,7 @@ lbool Solver::solve_(Cooperation* coop) //add here a int guiding_path parameter
   coop->processing_time.push();
   coop->processing_time[coop->processing_time.size()-1].push((double) ind);
   begin = clock();
+  fprintf(stderr, "Searching model for guiding path %d\n", ind);
 
   while((ind < allItems.size())  && !encodeGuidingPath(coop, ind+1)){
     end = clock();
@@ -881,6 +885,7 @@ lbool Solver::solve_(Cooperation* coop) //add here a int guiding_path parameter
     coop->processing_time.push();
     coop->processing_time[coop->processing_time.size()-1].push((double) ind);
     begin = clock();
+    fprintf(stderr, "Searching model for guiding path %d\n", ind);
   }
   if(ind >=  allItems.size())
     return l_False;

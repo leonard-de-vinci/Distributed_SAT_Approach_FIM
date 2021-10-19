@@ -229,7 +229,7 @@ int main(int argc, char** argv)
 
 		do
 		{
-			delay(500);
+			delay(1000);
 		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != 1);
 
 		while(mongoc_cursor_next(cursor, &config)){
@@ -268,7 +268,7 @@ int main(int argc, char** argv)
 
 		do
 		{
-			delay(500);
+			delay(1000);
 		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != 1);
 
 		while(mongoc_cursor_next(cursor, &items)){
@@ -306,7 +306,7 @@ int main(int argc, char** argv)
 
 		do
 		{
-			delay(500);
+			delay(1000);
 			fprintf(stderr, "On MongoDB, collection tab_transaction: n_trans: %d; n_docs: %d\n", n_trans, mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
 		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != n_trans);
 
@@ -345,7 +345,7 @@ int main(int argc, char** argv)
 
 		do
 		{
-			delay(500);
+			delay(1000);
 			fprintf(stderr, "On MongoDB, collection appear_trans: n_appear_trans: %d; n_doc: %d\n", n_appear_trans, mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
 		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != n_appear_trans);
 
@@ -551,10 +551,12 @@ int main(int argc, char** argv)
 
 		fprintf(stderr, "\n");
 
-		for(int i = 0; i < nbThreads; i++)
+		for(int i = 0; i < nbThreads + 1; i++)
 			coop.guiding_path.push_back(coop.guiding_path.at(coop.guiding_path.size() - 1) + 1);
 
 		coop.div_begining = coop.guiding_path[0];
+
+		fprintf(stderr, "Starting enumerating...\n");
         
 		lbool ret;
 		lbool result;
@@ -567,7 +569,6 @@ int main(int argc, char** argv)
 		int start_, end_;
 		time(&rawtime1);
 		start_date = localtime(&rawtime1);
-		sprintf(temp, "");
 		strftime(temp, 30, "%H%M%S", start_date);
 		start_ = atoi(temp);
 	
@@ -585,7 +586,6 @@ int main(int argc, char** argv)
 		time_elapsed += (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
 		time(&rawtime2);
 		end_date = localtime(&rawtime2);
-		sprintf(temp, "");
 		strftime(temp, 30, "%H%M%S", end_date);
 		end_ = atoi(temp);
 	
@@ -692,10 +692,7 @@ int main(int argc, char** argv)
 
 		fprintf(stderr, "\nTerminating...\n");
 		
-		while (1){
-			delay(60000);
-			fprintf(stderr, "Wait...\n");
-		}
+		delay(3600000);
 
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
