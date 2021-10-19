@@ -1,7 +1,7 @@
 #!/usr/local/bin/zsh
 cd code/master/core
 make CXX=g++-10
-cd ../slave/core
+cd ../../slave/core
 make CXX=g++-10
 cd ../../../
 cp dockerfiles/dockerfile_master dockerfile
