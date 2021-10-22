@@ -78,7 +78,7 @@ public:
     void    Equiv        (Lit q, vec<Lit>& lits, Cooperation* coop);
     int     max          (vec<int>& tab, int taille);
     void    echanger     (vec<int>& tab, int x, int y);
-    void    AfficheModel (vec<Lit>& lits);
+    void    AfficheModel (vec<Lit>& lits, Cooperation* coop);
 
 
 
@@ -155,6 +155,9 @@ public:
     
     vec<int>            VecItems;
     vec<int>            VecTrans;
+
+    clock_t begin;
+    clock_t end;
 
     // Statistics: (read-only member variable)
     //
