@@ -109,6 +109,16 @@
  /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/../mtl/XAlloc.h \
  /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver.h \
  /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/../mtl/Heap.h
+/Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver-old.o /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver-old.or /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver-old.od /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver-old.op: \
+ /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver-old.cc \
+ /usr/local/include/omp.h ../mtl/Sort.h ../mtl/Vec.h ../mtl/IntTypes.h \
+ ../mtl/XAlloc.h ../core/Solver.h ../core/../mtl/Vec.h \
+ ../core/../mtl/Heap.h ../core/../mtl/Vec.h ../core/../mtl/Alg.h \
+ ../core/../utils/Options.h ../core/../utils/../mtl/IntTypes.h \
+ ../core/../utils/../mtl/Vec.h ../core/../utils/ParseUtils.h \
+ ../core/SolverTypes.h ../core/../mtl/IntTypes.h ../core/../mtl/Map.h \
+ ../core/../mtl/IntTypes.h ../core/../mtl/Alloc.h ../core/../mtl/XAlloc.h \
+ ../core/Cooperation.h ../core/Solver.h
 /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver.o /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver.or /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver.od /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver.op: \
  /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core/Solver.cc \
  /usr/local/include/omp.h ../mtl/Sort.h ../mtl/Vec.h ../mtl/IntTypes.h \

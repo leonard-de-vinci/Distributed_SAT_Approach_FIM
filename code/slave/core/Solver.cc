@@ -25,13 +25,9 @@
 #include "core/Cooperation.h"
 #include <stdlib.h>
 #include <stdio.h>
-#include <time.h>
-
-#include <iostream>
 
 
 using namespace Minisat;
-using namespace std;
 
 //=================================================================================================
 // Options:
@@ -679,15 +675,7 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
     vec<Lit>    learnt_clause;
     lbool       answer;
     starts++;
-
-    end = clock();
-    coop->processing_time[coop->processing_time.size()-1].push((double) (end - begin) / CLOCKS_PER_SEC * 1000.0);
-    ind = coop->guiding_path[0];
-    coop->guiding_path.erase(coop->guiding_path.begin());
-    coop->processing_time.push();
-    coop->processing_time[coop->processing_time.size()-1].push((double) ind);
-    begin = clock();
-    fprintf(stderr, "Searching model for guiding path %d\n", ind);
+    ind += coop->jump; 	
     
     for (;;){
     
@@ -715,34 +703,17 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
 	      ok = true;
 	      reduceDB();
 
-	      while((ind < allItems.size())  && !encodeGuidingPath(coop, ind+1)){
-          end = clock();
-          coop->processing_time[coop->processing_time.size()-1].push((double) (end - begin) / CLOCKS_PER_SEC * 1000.0);
-          ind = coop->guiding_path[0];
-          coop->guiding_path.erase(coop->guiding_path.begin());
-          coop->processing_time.push();
-          coop->processing_time[coop->processing_time.size()-1].push((double) ind);
-          begin = clock();
-          fprintf(stderr, "Searching model for guiding path %d\n", ind);
-        }
+	      while((ind < allItems.size())  && !encodeGuidingPath(coop, ind+1))
+		ind += coop->jump;
 	      
-	      if(ind >=  allItems.size()){
-          return l_False;
-        }
+	      if(ind >=  allItems.size())
+		return l_False;
 		      
 	      diviser_state = 1;
-        end = clock();
-        coop->processing_time[coop->processing_time.size()-1].push((double) (end - begin) / CLOCKS_PER_SEC * 1000.0);
-        ind = coop->guiding_path[0];
-        coop->guiding_path.erase(coop->guiding_path.begin());
-        coop->processing_time.push();
-        coop->processing_time[coop->processing_time.size()-1].push((double) ind);
-        begin = clock();
-        fprintf(stderr, "Searching model for guiding path %d\n", ind);
+	      ind += coop->jump;
 	      goto Prop;
-	    }else{
+	    }else
 	      return l_False;
-      }
 	  
 	  if(nbTrans-nbFalseTrans < coop->min_supp){
 	    conflicts++;
@@ -784,7 +755,7 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
 	    if (next == lit_Undef){
 
 	      nbModels++;
-	      AfficheModel(trail, coop);
+	      AfficheModel(trail);
 	      if(verbosity >= 3){
 		printf("->  ");
 		for(int i = 0; i < VecItems.size(); i++)
@@ -813,8 +784,6 @@ lbool Solver::search(int nof_conflicts, Cooperation* coop)
 	  uncheckedEnqueue(next);
         }
     }
-
-  //fclose(test);
 }
 
 
@@ -861,31 +830,18 @@ static double luby(double y, int x){
 }
 
 // NOTE: assumptions passed in member-variable 'assumptions'.
-lbool Solver::solve_(Cooperation* coop) //add here a int guiding_path parameter
+lbool Solver::solve_(Cooperation* coop)
 {
   model.clear();
   conflict.clear();
   nbModels = 0;
   diviser_state = 1;
   nbClauses = 0;
-  
-  if (!ok) return l_False;
-  ind = coop->guiding_path[0];
-  coop->guiding_path.erase(coop->guiding_path.begin());
-  coop->processing_time.push();
-  coop->processing_time[coop->processing_time.size()-1].push((double) ind);
-  begin = clock();
-  fprintf(stderr, "Searching model for guiding path %d\n", ind);
 
+  if (!ok) return l_False;
+  ind = threadId + coop->div_begining + coop->offset;
   while((ind < allItems.size())  && !encodeGuidingPath(coop, ind+1)){
-    end = clock();
-    coop->processing_time[coop->processing_time.size()-1].push((double) (end - begin) / CLOCKS_PER_SEC * 1000.0);
-    ind = coop->guiding_path[0];
-    coop->guiding_path.erase(coop->guiding_path.begin());
-    coop->processing_time.push();
-    coop->processing_time[coop->processing_time.size()-1].push((double) ind);
-    begin = clock();
-    fprintf(stderr, "Searching model for guiding path %d\n", ind);
+    ind += coop->jump;
   }
   if(ind >=  allItems.size())
     return l_False;
@@ -898,7 +854,8 @@ lbool Solver::solve_(Cooperation* coop) //add here a int guiding_path parameter
   max_learnts               = nClauses() * learntsize_factor;
   learntsize_adjust_confl   = learntsize_adjust_start_confl;
   learntsize_adjust_cnt     = (int)learntsize_adjust_confl;
-  lbool   status            = l_Undef;  
+  lbool   status            = l_Undef;
+  
   
   // Search:
   int curr_restarts = 0;
@@ -926,6 +883,7 @@ lbool Solver::solve_(Cooperation* coop) //add here a int guiding_path parameter
 //=================================================================================================
 
 void Solver::EncodeDB(Cooperation* coop){
+
   nbFalseTrans = 0;
   nbItems = nVars();
   diviser_state = 1;
@@ -972,6 +930,7 @@ bool Solver::encodeGuidingPath(Cooperation* coop, int index){
   uncheckedEnqueue(allItems[i]);
   seen[var(allItems[i])] = 1;
   useless[var(allItems[i])] = 1;
+  
   /*vec<Lit> disItems;
   gplits.copyTo(disItems);
   disItems.pop();*/
@@ -994,6 +953,7 @@ bool Solver::encodeGuidingPath(Cooperation* coop, int index){
       }
     }
   }
+
   
   // propagate items that not appear in the database under the scope of p
   for(int v = 0; v < nbItems; v++) 
@@ -1013,6 +973,7 @@ bool Solver::encodeGuidingPath(Cooperation* coop, int index){
       useless[var(q)] = 1;
     }      
   }
+  
   //nbTrans = current_DB_size;
 
   //propagate tp false the transactions's variables not appear in the scope of p
@@ -1222,15 +1183,19 @@ void Solver::echanger(vec<int>& tab, int x, int y)
 
 //=================================================================================================
 
-  void Solver::AfficheModel(vec<Lit>& lits, Cooperation* coop){
-    int last = 0;
-
-    coop->models.push();
-    last = coop->models.size() - 1;
-
-    for(int i = 0; i < lits.size(); i++){
-      if(!isTrans[var(lits[i])] && !sign(lits[i]))
-        coop->models[last].push(var(lits[i]) + 1);
+  void Solver::AfficheModel(vec<Lit>& lits){
+  
+    FILE* fichier = NULL;
+    fichier = fopen("models.txt", "a");
+    if (fichier != NULL)
+    {
+      for(int i = 0; i < lits.size(); i++)  
+      {
+        if(!isTrans[var(lits[i])]&& !sign(lits[i]))
+        fprintf(fichier, "%s%d ", sign(lits[i]) ? "-" : "", var(lits[i])+1);
+      }
+      fprintf(fichier, "\n");
+      fclose(fichier);
     }
   }
 
@@ -1371,3 +1336,15 @@ void Solver::garbageCollect()
                ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
     to.moveTo(ca);
 }
+
+
+
+
+
+
+
+
+
+
+
+

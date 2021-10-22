@@ -225,8 +225,6 @@ int main(int argc, char** argv)
 		collection = mongoc_client_get_collection(client, "dataset", "config");
 		cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
-		delay(1000);
-
 		do
 		{
 			delay(1000);
@@ -270,7 +268,7 @@ int main(int argc, char** argv)
 		{
 			delay(1000);
 		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != 1);
-
+		
 		while(mongoc_cursor_next(cursor, &items)){
 			if(bson_iter_init(&iter, items)){
 				while(bson_iter_next(&iter)){
@@ -284,6 +282,7 @@ int main(int argc, char** argv)
 							}
 							if(items_temp.size() < n_items){
 								items_temp.push(mkLit(value->value.v_int32, false));
+								coop.correl.push();
 							}
 						}
 					}
@@ -322,10 +321,12 @@ int main(int argc, char** argv)
 								return EXIT_FAILURE;
 							}
 							trans_temp.push(mkLit(value->value.v_int32, false));
-						}
-						var_ += trans_temp.size();
-						for(int t = 0; t < coop.nbThreads; t++){
-	  						while (var_ >= coop.solvers[t].nVars()) coop.solvers[t].newVar();
+							var_ = value->value.v_int32;
+							int initvar = var_;
+							for(int t = 0; t < coop.nbThreads; t++){
+								var_ = initvar;
+	  							while (var_ >= coop.solvers[t].nVars()) coop.solvers[t].newVar();
+							}
 						}
 						coop.addTransactions(trans_temp);
 						trans_temp.clear();
@@ -428,6 +429,7 @@ int main(int argc, char** argv)
         char errstr[512]; //librdkafka API error reporting buffer
 		FILE *log = fopen("kafka.log", "a");
 		char *message;
+		vec<int> infos;
 
         const char *topics = "guiding_path";           /* Argument: list of topics to subscribe to */
         int topic_cnt = 1;           /* Number of topics to subscribe to */
@@ -535,7 +537,7 @@ int main(int argc, char** argv)
             //     printf(" Value: (%d bytes)\n", (int)rkm->len);
 
 			if(strcmp(message, "end") != 0)
-				coop.guiding_path.push_back(atoi(message));
+				infos.push(atoi(message));
 			else
 				run = false;
 
@@ -551,10 +553,12 @@ int main(int argc, char** argv)
 
 		fprintf(stderr, "\n");
 
-		for(int i = 0; i < nbThreads + 1; i++)
-			coop.guiding_path.push_back(coop.guiding_path.at(coop.guiding_path.size() - 1) + 1);
+		// for(int i = 0; i < nbThreads + 1; i++)
+		// 	coop.guiding_path.push_back(coop.guiding_path.at(coop.guiding_path.size() - 1) + 1);
 
-		coop.div_begining = coop.guiding_path[0];
+		coop.offset = infos[0];
+		coop.div_begining = infos[1];
+		coop.jump = coop.nbThreads * nsolvers;
 
 		fprintf(stderr, "Starting enumerating...\n");
         
@@ -562,15 +566,15 @@ int main(int argc, char** argv)
 		lbool result;
 		double time_elapsed = 0.0;
 		clock_t begin = clock();
-		time_t rawtime1;
-		time_t rawtime2;
-		struct tm *start_date;
-		struct tm *end_date;
-		int start_, end_;
-		time(&rawtime1);
-		start_date = localtime(&rawtime1);
-		strftime(temp, 30, "%H%M%S", start_date);
-		start_ = atoi(temp);
+		// time_t rawtime1;
+		// time_t rawtime2;
+		// struct tm *start_date;
+		// struct tm *end_date;
+		// int start_, end_;
+		// time(&rawtime1);
+		// start_date = localtime(&rawtime1);
+		// strftime(temp, 30, "%H%M%S", start_date);
+		// start_ = atoi(temp);
 	
 		// launch threads in Parallel 	
 
@@ -584,10 +588,11 @@ int main(int argc, char** argv)
 
 		clock_t end = clock();
 		time_elapsed += (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
-		time(&rawtime2);
-		end_date = localtime(&rawtime2);
-		strftime(temp, 30, "%H%M%S", end_date);
-		end_ = atoi(temp);
+		fprintf(stderr, "time elapsed: %f", time_elapsed);
+		// time(&rawtime2);
+		// end_date = localtime(&rawtime2);
+		// strftime(temp, 30, "%H%M%S", end_date);
+		// end_ = atoi(temp);
 	
 		int cpt = 0;
 		// each worker print its models
@@ -667,13 +672,13 @@ int main(int argc, char** argv)
         BSON_APPEND_DOUBLE(&child2, "processing time (in ms)", time_elapsed);
         bson_append_document_end(document, &child2);
 
-		BSON_APPEND_DOCUMENT_BEGIN(document, "start_time", &child2);
-		BSON_APPEND_INT32(&child2, "start time", start_);
-        bson_append_document_end(document, &child2);
+		// BSON_APPEND_DOCUMENT_BEGIN(document, "start_time", &child2);
+		// BSON_APPEND_INT32(&child2, "start time", start_);
+        // bson_append_document_end(document, &child2);
 
-		BSON_APPEND_DOCUMENT_BEGIN(document, "end_time", &child2);
-		BSON_APPEND_INT32(&child2, "end time", end_);
-		bson_append_document_end(document, &child2);
+		// BSON_APPEND_DOCUMENT_BEGIN(document, "end_time", &child2);
+		// BSON_APPEND_INT32(&child2, "end time", end_);
+		// bson_append_document_end(document, &child2);
 
 		if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
             fprintf (stderr, "%s\n", error.message);
@@ -692,7 +697,7 @@ int main(int argc, char** argv)
 
 		fprintf(stderr, "\nTerminating...\n");
 		
-		delay(3600000);
+		//delay(3600000);
 
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')

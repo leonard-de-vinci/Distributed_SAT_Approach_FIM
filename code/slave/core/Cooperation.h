@@ -47,6 +47,8 @@ Description:
     vec<vec<int> >      models;
     std::vector<int>    guiding_path;
     vec<vec<double> >      processing_time;
+    int offset;
+    int jump;
     
     //=================================================================================================
  
