@@ -704,8 +704,8 @@ int main(int argc, char** argv)
 
         fprintf(stderr, "Terminating...\n");
 
-        //fprintf(stderr, "Press Enter to continue...%c", getchar());
-        //delay(3600000);
+        fprintf(stderr, "Press Enter to continue...%c", getchar());
+        delay(3600000);
 
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
