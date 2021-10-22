@@ -183,8 +183,6 @@ int main(int argc, char** argv)
         char temp[30] = {0};
         bool sent = true;
         int val = 0;
-        int start_time[nbsolvers];
-        int end_time[nbsolvers];
         size_t keylen;
         mongoc_uri_t *uri;
         mongoc_client_t *client;
@@ -640,6 +638,10 @@ int main(int argc, char** argv)
         mongoc_cursor_destroy(cursor);
         mongoc_collection_destroy(collection);
 
+        double time[nbsolvers] = {0.0};
+        int start_time[nbsolvers] = {0};
+        int end_time[nbsolvers] = {0};
+
         collection = mongoc_client_get_collection(client, "solvers", "finished");
         cursor = mongoc_collection_find_with_opts(collection, query, NULL, NULL);
 
@@ -650,24 +652,29 @@ int main(int argc, char** argv)
 					if(bson_iter_init_find(&iter, solving_time, key) && BSON_ITER_HOLDS_DOCUMENT(&iter) && bson_iter_recurse(&iter, &child2)){
 						while(bson_iter_next(&child2)){
 							value = bson_iter_value(&child2);
-							if(!(value->value_type == BSON_TYPE_INT32 || value->value_type == BSON_TYPE_DOUBLE)){
-								fprintf(stderr, "failed to parse document: %s in collection config", key);
-								return EXIT_FAILURE;
+							if(value->value_type == BSON_TYPE_INT32 || value->value_type == BSON_TYPE_DOUBLE){
+                                if(strcmp(key, "start_time") == 0){
+                                    start_time[index] = value->value.v_int32;
+                                }
+                                else if(strcmp(key, "end_time") == 0){
+                                    end_time[index] = value->value.v_int32;
+                                    index++;
+                                }
+                                else if(strcmp(key, "time_elapsed") == 0){
+                                    time[index] = value->value.v_double;
+                                }
 							}
-							if(strcmp(key, "start_time") == 0){
-                                fprintf(stderr, "start_time: %d\n", value->value.v_int32);
-								start_time[index] = value->value.v_int32;}
-                            else if(strcmp(key, "end_time") == 0){
-                                fprintf(stderr, "end_time: %d\n", value->value.v_int32);
-                                end_time[index] = value->value.v_int32;}
+                            else{
+                                fprintf(stderr, "failed to parse document: %s in collection config", key);
+								return EXIT_FAILURE;
+                            }
 						}
 					}
-                    index++;
 				}
 			}
 		}
 
-        fprintf(stderr, "Statistics received\n");
+        fprintf(stderr, "Statistics received\n\n");
 
         /* Destroy the topic */
         delete_topic(rk, topic);
@@ -683,25 +690,27 @@ int main(int argc, char** argv)
 
 	    lbool result;
 
-        fprintf(stderr, "Calculating user time...\n");
-        fprintf(stderr, "nbsolvers: %d\n", nbsolvers);
+        fprintf(stderr, "\nCalculating user time...\n");
 
         int min_start = start_time[0];
         int max_end = end_time[0];
+        double max_time = time[0];
 
         for(int i = 0; i < nbsolvers; i++){
             if(min_start > start_time[i]){
                 min_start = start_time[i];
-                fprintf(stderr, "min_start updated: %d\n", min_start);
             }
             if(max_end < end_time[i]){
                 max_end = end_time[i];
-                fprintf(stderr, "max_end updated: %d\n", max_end);
+            }
+            if(max_time < time[i]){
+                max_time = time[i];
             }
         }
 
+        fprintf(stderr, "max solving time: %f\n", max_time);
+
         fprintf(stderr, "max_end: %d, min_start: %d\n", max_end, min_start);
-        fprintf(stderr, "max-min: %d\n", max_end - min_start);
 
         char user_time[12];
         sprintf(user_time, "%d", max_end - min_start);
