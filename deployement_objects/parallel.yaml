@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.23.0 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: parallel
+  name: parallel
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: parallel
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.23.0 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: parallel
+    spec:
+      containers:
+        - env:
+            - name: DATASET
+              value: ../../../data/retail.dat
+            - name: MINSUPPORT
+              value: "500"
+            - name: NSCORES
+              value: "1"
+          image: s3.dvic.devinci.fr/clusterspeed/parallel:latest
+          name: parallel
+          resources: {}
+      imagePullSecrets: 
+        - name: regcred
+      restartPolicy: Always
+status: {}
