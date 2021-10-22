@@ -566,15 +566,15 @@ int main(int argc, char** argv)
 		lbool result;
 		double time_elapsed = 0.0;
 		clock_t begin = clock();
-		// time_t rawtime1;
-		// time_t rawtime2;
-		// struct tm *start_date;
-		// struct tm *end_date;
-		// int start_, end_;
-		// time(&rawtime1);
-		// start_date = localtime(&rawtime1);
-		// strftime(temp, 30, "%H%M%S", start_date);
-		// start_ = atoi(temp);
+		time_t rawtime1;
+		time_t rawtime2;
+		struct tm *start_date;
+		struct tm *end_date;
+		int start_, end_;
+		time(&rawtime1);
+		start_date = localtime(&rawtime1);
+		strftime(temp, 30, "%H%M%S", start_date);
+		start_ = atoi(temp);
 	
 		// launch threads in Parallel 	
 
@@ -588,11 +588,11 @@ int main(int argc, char** argv)
 
 		clock_t end = clock();
 		time_elapsed += (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
-		fprintf(stderr, "time elapsed: %f", time_elapsed);
-		// time(&rawtime2);
-		// end_date = localtime(&rawtime2);
-		// strftime(temp, 30, "%H%M%S", end_date);
-		// end_ = atoi(temp);
+		fprintf(stderr, "time elapsed: %f\n", time_elapsed);
+		time(&rawtime2);
+		end_date = localtime(&rawtime2);
+		strftime(temp, 30, "%H%M%S", end_date);
+		end_ = atoi(temp);
 	
 		int cpt = 0;
 		// each worker print its models
@@ -672,13 +672,13 @@ int main(int argc, char** argv)
         BSON_APPEND_DOUBLE(&child2, "processing time (in ms)", time_elapsed);
         bson_append_document_end(document, &child2);
 
-		// BSON_APPEND_DOCUMENT_BEGIN(document, "start_time", &child2);
-		// BSON_APPEND_INT32(&child2, "start time", start_);
-        // bson_append_document_end(document, &child2);
+		BSON_APPEND_DOCUMENT_BEGIN(document, "start_time", &child2);
+		BSON_APPEND_INT32(&child2, "start time", start_);
+        bson_append_document_end(document, &child2);
 
-		// BSON_APPEND_DOCUMENT_BEGIN(document, "end_time", &child2);
-		// BSON_APPEND_INT32(&child2, "end time", end_);
-		// bson_append_document_end(document, &child2);
+		BSON_APPEND_DOCUMENT_BEGIN(document, "end_time", &child2);
+		BSON_APPEND_INT32(&child2, "end time", end_);
+		bson_append_document_end(document, &child2);
 
 		if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
             fprintf (stderr, "%s\n", error.message);

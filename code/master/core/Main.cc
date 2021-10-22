@@ -465,98 +465,6 @@ int main(int argc, char** argv)
 
         //Guiding_Path
 
-        // for(int i = coop.div_begining; run && i < (coop.items.size() + (2 * nbsolvers)); i++){
-        //     if(i >= coop.items.size() + nbsolvers){
-        //         sprintf(buff, "end");
-        //         len = strlen(buff);
-        //     }
-        //     else if(i >= coop.items.size()){
-        //         sprintf(buff, "%d", coop.items.size());
-        //         len = strlen(buff);
-        //     }
-        //     else{
-        //         sprintf(buff, "%d", i);
-        //         len = strlen(buff);
-        //     }
-
-
-        //     if(partition == nbsolvers - 1)
-        //         partition = 0;
-        //     else
-        //         partition++;
-
-        //     /*
-        //      * Send/Produce message.
-        //      * This is an asynchronous call, on success it will only
-        //      * enqueue the message on the internal producer queue.
-        //      * The actual delivery attempts to the broker are handled
-        //      * by background threads.
-        //      * The previously registered delivery report callback
-        //      * (dr_msg_cb) is used to signal back to the application
-        //      * when the message has been delivered (or failed).
-        //      */
-        //     do{
-        //         /* rd_kafka_producev(producer handle, ..., RD_KAFKA_V_END); */
-        //         err = rd_kafka_producev(
-        //             /* Producer handle */
-        //             rk,
-        //             /* Topic name */
-        //             RD_KAFKA_V_TOPIC(topic),
-        //             /* Partition */
-        //             RD_KAFKA_V_PARTITION(partition),
-        //             /* Make a copy of the payload. */
-        //             RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
-        //             /* Message value and length */
-        //             RD_KAFKA_V_VALUE(buff, len),
-        //             /* Per-Message opaque, provided in
-        //              * delivery report callback as
-        //              * msg_opaque. */
-        //             RD_KAFKA_V_OPAQUE(NULL),
-        //             /* End sentinel */
-        //             RD_KAFKA_V_END);
-
-        //         if (err){
-        //             /*
-        //              * Failed to *enqueue* message for producing.
-        //              */
-        //             fprintf(stderr, "%% Failed to produce to topic %s: %s\n", topic, rd_kafka_err2str(err));
-        //             fprintf(log, "%s | %% Failed to produce to topic %s: %s\n", gettime(), topic, rd_kafka_err2str(err));
-
-        //             if (err == RD_KAFKA_RESP_ERR__QUEUE_FULL) {
-        //                 /* If the internal queue is full, wait for
-        //                  * messages to be delivered and then retry.
-        //                  * The internal queue represents both
-        //                  * messages to be sent and messages that have
-        //                  * been sent or failed, awaiting their
-        //                  * delivery report callback to be called.
-        //                  *
-        //                  * The internal queue is limited by the
-        //                  * configuration property
-        //                  * queue.buffering.max.messages */
-        //                 rd_kafka_poll(rk, 1000/*block for max 1000ms*/);
-        //             }
-        //         }
-        //         else{
-        //             fprintf(log, "%s | %% Enqueued message \"%s\" (%zd bytes) for topic %s\n", gettime(), buff, len, topic);
-        //             fprintf(stderr, "%s | %% Enqueued message \"%s\" (%zd bytes) for topic %s\n", gettime(), buff, len, topic);
-        //         }
-        //     }while(err == RD_KAFKA_RESP_ERR__QUEUE_FULL);
-
-
-        //     /* A producer application should continually serve
-        //      * the delivery report queue by calling rd_kafka_poll()
-        //      * at frequent intervals.
-        //      * Either put the poll call in your main loop, or in a
-        //      * dedicated thread, or call it after every
-        //      * rd_kafka_produce() call.
-        //      * Just make sure that rd_kafka_poll() is still called
-        //      * during periods where you are not producing any messages
-        //      * to make sure previously produced messages have their
-        //      * delivery report callback served (and any other callbacks
-        //      * you register). */
-        //     rd_kafka_poll(rk, 0/*non-blocking*/);
-        // }
-
         for(int i = 0; run && i < nbsolvers; i++){
             for(int j = 0; j < 3; j++){
                 if(j == 0)
@@ -656,6 +564,8 @@ int main(int argc, char** argv)
         fclose(log);
 
         fprintf(stderr, "\n");
+
+        fprintf(stderr, "Recieving models...\n");
 
 
 
