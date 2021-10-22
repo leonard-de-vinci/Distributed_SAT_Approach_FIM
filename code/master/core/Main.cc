@@ -223,11 +223,18 @@ int main(int argc, char** argv)
         mongoc_database_drop_with_opts(database, NULL, NULL);
         mongoc_database_destroy(database);
 
+        database = mongoc_client_get_database(client, "dataset");
+
         if(datareset){
-            database = mongoc_client_get_database(client, "dataset");
             mongoc_database_drop_with_opts(database, NULL, NULL);
-            mongoc_database_destroy(database);
         }
+        else{
+            collection = mongoc_client_get_collection(client, "dataset", "config");
+            mongoc_collection_drop_with_opts(collection, NULL, NULL);
+        }
+
+        mongoc_database_destroy(database);
+
 
         //Solver Config
         fprintf(stderr, "Retrieving solvers config...\n");
@@ -269,47 +276,45 @@ int main(int argc, char** argv)
 
         fprintf(stderr, "Solvers configurations received\n");
 
+        fprintf(stderr, "Transmitting data to mongoDB database...\n");
+
+        database = mongoc_client_get_database(client, "dataset");
+
+        //Configuration
+        collection = mongoc_client_get_collection(client, "dataset", "config");
+        document = bson_new();
+        bson_oid_init(&oid, NULL);
+        BSON_APPEND_OID(document, "_id", &oid);
+
+        BSON_APPEND_DOCUMENT_BEGIN(document, "nsolvers", &child);
+        BSON_APPEND_INT32(&child, "number", nbsolvers);
+        bson_append_document_end(document, &child);
+
+        BSON_APPEND_DOCUMENT_BEGIN(document, "items", &child);
+        BSON_APPEND_INT32(&child, "number", coop.items.size());
+        bson_append_document_end(document, &child);
+
+        BSON_APPEND_DOCUMENT_BEGIN(document, "tab_transactions", &child);
+        BSON_APPEND_INT32(&child, "number", coop.tabTransactions.size());
+        bson_append_document_end(document, &child);
+
+        BSON_APPEND_DOCUMENT_BEGIN(document, "appear_trans", &child);
+        BSON_APPEND_INT32(&child, "number", coop.appearTrans.size());
+        bson_append_document_end(document, &child);
+
+        if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
+            fprintf (stderr, "%s\n", error.message);
+            sent = false;
+        }
+        else{
+            fprintf(stderr, "Configuration sent\n");
+        }
+
+        bson_destroy(document);
+        mongoc_collection_destroy(collection);
+
         //Database push
         if(datareset){
-            fprintf(stderr, "Transmitting data to mongoDB database...\n");
-
-            database = mongoc_client_get_database(client, "dataset");
-
-            //Configuration
-            collection = mongoc_client_get_collection(client, "dataset", "config");
-            document = bson_new();
-            bson_oid_init(&oid, NULL);
-            BSON_APPEND_OID(document, "_id", &oid);
-
-            BSON_APPEND_DOCUMENT_BEGIN(document, "nsolvers", &child);
-            BSON_APPEND_INT32(&child, "number", nbsolvers);
-            bson_append_document_end(document, &child);
-
-            BSON_APPEND_DOCUMENT_BEGIN(document, "items", &child);
-            BSON_APPEND_INT32(&child, "number", coop.items.size());
-            bson_append_document_end(document, &child);
-
-            BSON_APPEND_DOCUMENT_BEGIN(document, "tab_transactions", &child);
-            BSON_APPEND_INT32(&child, "number", coop.tabTransactions.size());
-            bson_append_document_end(document, &child);
-
-            BSON_APPEND_DOCUMENT_BEGIN(document, "appear_trans", &child);
-            BSON_APPEND_INT32(&child, "number", coop.appearTrans.size());
-            bson_append_document_end(document, &child);
-
-            if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-                fprintf (stderr, "%s\n", error.message);
-                sent = false;
-            }
-            else{
-                fprintf(stderr, "Configuration sent\n");
-            }
-
-            bson_destroy(document);
-            mongoc_collection_destroy(collection);
-
-
-
             // Items
             collection = mongoc_client_get_collection(client, "dataset", "items");
             document = bson_new();
@@ -404,8 +409,9 @@ int main(int argc, char** argv)
                 fprintf(stderr, "Appear trans sent\n");
 
             mongoc_collection_destroy(collection);
-            mongoc_database_destroy(database);
         }
+
+        mongoc_database_destroy(database);
 
         fprintf(stderr, "\n");
 
