@@ -92,31 +92,14 @@ services:
   #     - KAFKAADDR=broker
   #     - KAFKAPORT=9092
   
-  # slave-1:
-  #   image: servant
-  #   container_name: solver1
+  # slave:
+  #   image: slave
+  #   container_name: solver
   #   depends_on: 
   #     - master
   #   environment: 
-  #     - MINSUPPORT=500
-  #     - NCORES=2
-  #     - MONGOUSER=root
-  #     - MONGOPASS=root
-  #     - MONGOADDR=mongodb
-  #     - MONGOPORT=27017
-  #     - KAFKAADDR=broker
-  #     - KAFKAPORT=9092
-  #     - KAFKAGROUP=solvers
-  #     - KAFKAOFTRST=earliest
-
-  # slave-2:
-  #   image: servant
-  #   container_name: solver2
-  #   depends_on: 
-  #     - master
-  #   environment: 
-  #     - MINSUPPORT=500
-  #     - NCORES=2
+  #     - MINSUPPORT=80
+  #     - NCORES=1
   #     - MONGOUSER=root
   #     - MONGOPASS=root
   #     - MONGOADDR=mongodb
