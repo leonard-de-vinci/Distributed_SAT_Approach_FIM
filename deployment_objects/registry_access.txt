@@ -1,0 +1,3 @@
+url: s3.dvic.devinci.fr
+username: dvrc
+password: Fohsh9ti
