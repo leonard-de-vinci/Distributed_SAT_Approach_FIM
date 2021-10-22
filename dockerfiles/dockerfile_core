@@ -23,6 +23,7 @@ RUN apt-get update -y\
   	&& apt-get install libbson-dev -y\
 	&& apt-get install libbson-1.0-0 -y\
 	&& apt-get install libmongoc-1.0-0 -y\
+	&& apt-get install vim -y\
 	&& apt-get clean -y
 
 CMD /usr/bin/bash
