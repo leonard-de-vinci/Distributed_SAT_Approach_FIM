@@ -13,3 +13,4 @@ code/master/core/Models.txt
 code/Checking/results.txt
 deployement_objects/registry_access.txt
 code/slave/core/kafka.log
+dockerfile
