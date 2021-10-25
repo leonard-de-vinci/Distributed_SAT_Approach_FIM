@@ -32,6 +32,12 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace Minisat;
 
+void delay(int duration){
+        clock_t start_time = clock();
+	while(clock() < start_time + (duration * CLOCKS_PER_SEC / 1000))
+		;
+}
+
 
 // Main:
 
@@ -196,6 +202,8 @@ int main(int argc, char** argv)
 	printf("-----------------------------------------------\n");
 	
 	printf("#total Clauses  : %15d     \n", nbcls);
+
+	delay(3600);
        
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
