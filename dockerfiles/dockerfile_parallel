@@ -1,0 +1,18 @@
+FROM flexiboy/core
+
+ENV MINSUPPORT=500
+ENV NCORES=2
+ENV DATASET=../../../data/retail.dat
+
+WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
+
+ADD ./code/parallelItemsets-Imen ./code/parallelItemsets-Imen
+ADD ./data ./data
+
+RUN cd code/parallelItemsets-Imen/core\
+	&& make clean\
+	&& make -k CXX=g++-10
+
+WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/parallelItemsets-Imen/core
+
+ENTRYPOINT ./parallelSAT4CFI -minSupport=${MINSUPPORT} -ncores=${NCORES} ${DATASET}
