@@ -39,11 +39,13 @@ spec:
               value: mongodb
             - name: VCAP_APP_PORT
               value: "8082"
-          image: mongo-express
+          image: s3.dvic.devinci.fr/clusterspeed/mongoadmin:latest
           name: mongoadmin
           ports:
             - containerPort: 8082
           resources: {}
+      imagePullSecrets: 
+        - name: regcred
       restartPolicy: Always
 status: {}
 

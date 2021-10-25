@@ -29,7 +29,7 @@ spec:
               value: ../../../data/retail.dat
             - name: MINSUPPORT
               value: "500"
-            - name: NSCORES
+            - name: NCORES
               value: "1"
           image: s3.dvic.devinci.fr/clusterspeed/parallel:latest
           name: parallel
