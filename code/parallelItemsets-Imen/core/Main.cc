@@ -32,12 +32,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace Minisat;
 
-void delay(int duration){
-        clock_t start_time = clock();
-	while(clock() < start_time + (duration * CLOCKS_PER_SEC / 1000))
-		;
-}
-
 
 // Main:
 
@@ -84,9 +78,9 @@ int main(int argc, char** argv)
 	fprintf(file, "Results - Models\n\n");
 	fclose(file);
 
-	fprintf(stderr," -----------------------------------------------------------------------------------------------------------------------\n");
-	fprintf(stderr,"|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
-	fprintf(stderr," -----------------------------------------------------------------------------------------------------------------------\n");
+	printf(" -----------------------------------------------------------------------------------------------------------------------\n");
+	printf("|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
+	printf(" -----------------------------------------------------------------------------------------------------------------------\n");
 
 
 
@@ -97,7 +91,7 @@ int main(int argc, char** argv)
             if (rl.rlim_max == RLIM_INFINITY || (rlim_t)cpu_lim < rl.rlim_max){
                 rl.rlim_cur = cpu_lim;
                 if (setrlimit(RLIMIT_CPU, &rl) == -1)
-                    fprintf(stderr,"WARNING! Could not set resource limit: CPU-time.\n");
+                    printf("WARNING! Could not set resource limit: CPU-time.\n");
             } }
 
         // Set limit on virtual memory:
@@ -108,26 +102,26 @@ int main(int argc, char** argv)
             if (rl.rlim_max == RLIM_INFINITY || new_mem_lim < rl.rlim_max){
                 rl.rlim_cur = new_mem_lim;
                 if (setrlimit(RLIMIT_AS, &rl) == -1)
-                    fprintf(stderr,"WARNING! Could not set resource limit: Virtual memory.\n");
+                    printf("WARNING! Could not set resource limit: Virtual memory.\n");
             } }
         
         if (argc == 1)
-            fprintf(stderr,"Reading from standard input... Use '--help' for help.\n");
+            printf("Reading from standard input... Use '--help' for help.\n");
         
         gzFile in = (argc == 1) ? gzdopen(0, "rb") : gzopen(argv[1], "rb");
         if (in == NULL)
-            fprintf(stderr,"ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1]), exit(1);
+            printf("ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1]), exit(1);
 	
 	
 
         if (coop.solvers[0].verbosity > 0){
-            fprintf(stderr," ===============================================[ Problem Statistics ]==================================================\n");
-            fprintf(stderr,"|                                                                                                                       |\n");
-            fprintf(stderr,"|                                                                                                                       |\n"); }
+            printf(" ===============================================[ Problem Statistics ]==================================================\n");
+            printf("|                                                                                                                       |\n");
+            printf("|                                                                                                                       |\n"); }
         
 
-	fprintf(stderr,"<> instance    : %s\n", argv[1]);
-	fprintf(stderr,"<> nbThreads   : %d \n\n", nbThreads);
+	printf("<> instance    : %s\n", argv[1]);
+	printf("<> nbThreads   : %d \n\n", nbThreads);
 	
 	omp_set_num_threads(nbThreads);
 	parse_DIMACS(in, &coop);
@@ -142,8 +136,8 @@ int main(int argc, char** argv)
         
         double parsed_time = cpuTime();
         if (coop.solvers[0].verbosity > 0){
-            fprintf(stderr,"|  Parse time:           %12.2f s                                                                                 |\n", parsed_time - initial_time);
-            fprintf(stderr,"|                                                                                                                       |\n"); }
+            printf("|  Parse time:           %12.2f s                                                                                 |\n", parsed_time - initial_time);
+            printf("|                                                                                                                       |\n"); }
  
 
 
@@ -151,10 +145,10 @@ int main(int argc, char** argv)
 	if (!coop.solvers[0].simplify()){
 	  if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
 	  if (coop.solvers[0].verbosity > 0){
-	    fprintf(stderr,"========================================================================================================================\n");
-	    fprintf(stderr,"Solved by unit propagation\n");
-	    fprintf(stderr,"\n"); }
-	  fprintf(stderr,"UNSATISFIABLE\n");
+	    printf("========================================================================================================================\n");
+	    printf("Solved by unit propagation\n");
+	    printf("\n"); }
+	  printf("UNSATISFIABLE\n");
 	  exit(20);
         }
         
@@ -180,32 +174,28 @@ int main(int argc, char** argv)
 	clock_t end = clock();
 	time_elapsed += (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
 
-	fprintf(stderr, "time elapsed: %f\n", time_elapsed);
+	printf("time elapsed: %f\n", time_elapsed);
 	
 	
 	int cpt = 0;
 	// each worker print its models
-	fprintf(stderr,"-----------------------------------------------\n");
-	fprintf(stderr,"thread | nb models          | nb conflicts    |\n");
-	fprintf(stderr,"-----------------------------------------------\n");
+	printf("-----------------------------------------------\n");
+	printf("thread | nb models          | nb conflicts    |\n");
+	printf("-----------------------------------------------\n");
 
 	int nbcls = 0;
 	for(int t = 0; t < coop.nThreads(); t++){
 	  cpt +=  coop.solvers[t].nbModels;
 	  nbcls += coop.solvers[t].nbClauses;
-	  fprintf(stderr, "  %2d   |   %15d  | %d \n", t, coop.solvers[t].nbModels, (int)coop.solvers[t].conflicts);
+	  printf("  %2d   |   %15d  | %d \n", t, coop.solvers[t].nbModels, (int)coop.solvers[t].conflicts);
 	  //printf("-----------------------------------------------\n");
 	  //coop.solvers[t].AfficheModel();
 	}
-	fprintf(stderr, "-----------------------------------------------\n");
-	fprintf(stderr, "total  | %15d    | \n", cpt);
-	fprintf(stderr, "-----------------------------------------------\n");
+	printf("-----------------------------------------------\n");
+	printf("total  | %15d    | \n", cpt);
+	printf("-----------------------------------------------\n");
 	
-	fprintf(stderr, "#total Clauses  : %15d     \n", nbcls);
-
-	printf("Terminating...");
-
-	delay(3600000);
+	printf("#total Clauses  : %15d     \n", nbcls);
        
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
@@ -213,8 +203,8 @@ int main(int argc, char** argv)
         return (result == l_True ? 10 : result == l_False ? 20 : 0);
 #endif
     } catch (OutOfMemoryException&){
-        fprintf(stderr,"===============================================================================\n");
-        fprintf(stderr,"INDETERMINATE\n");
+        printf("===============================================================================\n");
+        printf("INDETERMINATE\n");
         exit(0);
     }
 }
