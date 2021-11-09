@@ -178,7 +178,7 @@ int main(int argc, char** argv)
 	}
 
 	clock_t end = clock();
-	time_elapsed += (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
+	time_elapsed = (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
 
 	fprintf(stderr, "time elapsed: %f\n", time_elapsed);
 	
