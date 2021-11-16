@@ -275,6 +275,7 @@ int main(int argc, char** argv)
         fprintf(stderr, "Solvers configurations received\n");
 
         fprintf(stderr, "Transmitting data to mongoDB database...\n");
+        time_t start_send = time(NULL);
 
         database = mongoc_client_get_database(client, "dataset");
 
@@ -412,6 +413,7 @@ int main(int argc, char** argv)
         mongoc_database_destroy(database);
 
         fprintf(stderr, "\n");
+        time_t end_send = time(NULL);
 
 
 
@@ -716,6 +718,7 @@ int main(int argc, char** argv)
         sprintf(user_time, "%d", max_end - min_start);
 
         fprintf(stderr, "User time: %s\n", user_time);
+        fprintf(stderr, "Data sending time: %f\n", difftime(end_send, start_send));
 
         fprintf(stderr, "Terminating...\n");
 
