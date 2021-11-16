@@ -565,7 +565,7 @@ int main(int argc, char** argv)
 		lbool ret;
 		lbool result;
 		double time_elapsed = 0.0;
-		clock_t begin = clock();
+		time_t begin = time(NULL);
 		time_t rawtime1;
 		time_t rawtime2;
 		struct tm *start_date;
@@ -586,8 +586,8 @@ int main(int argc, char** argv)
 			ret = coop.solvers[t].solve_(&coop);
 		}
 
-		clock_t end = clock();
-		time_elapsed += (double) (end - begin) / CLOCKS_PER_SEC * 1000.0;
+		time_t end = time(NULL);
+		time_elapsed = difftime(end, begin);
 		fprintf(stderr, "time elapsed: %f\n", time_elapsed);
 		time(&rawtime2);
 		end_date = localtime(&rawtime2);

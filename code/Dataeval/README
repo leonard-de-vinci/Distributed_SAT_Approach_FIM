@@ -1,0 +1,24 @@
+================================================================================
+DIRECTORY OVERVIEW:
+
+mtl/            Mini Template Library
+utils/          Generic helper code (I/O, Parsing, CPU-time, etc)
+core/           A core version of the solver
+simp/           An extended solver with simplification capabilities (as soon as possible)
+README
+LICENSE
+
+================================================================================
+BUILDING: (release version: without assertions, statically linked, etc)
+
+export MROOT=<ManySAT-dir>              (or setenv in cshell)
+cd { core | simp }
+gmake rs
+cp manysat_static <install-dir>/manysat
+
+================================================================================
+EXAMPLES:
+
+Run manysat with same heuristics as version 2.0:
+
+> manysat2.0 <cnf-file> -no-luby -rinc=1.5 -phase-saving=0 -rnd-freq=0.02 -ncores=4 -limitEx=10 -det=0 -ctrl=0

@@ -32,13 +32,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace Minisat;
 
-void delay(int duration){
-        clock_t start_time = clock();
-	while(clock() < start_time + (duration * CLOCKS_PER_SEC / 1000))
-		;
-}
-
-
 // Main:
 
 
@@ -78,11 +71,6 @@ int main(int argc, char** argv)
 	  coop.solvers[t].threadId = t;
 	  coop.solvers[t].verbosity = verb;
 	}
-
-	FILE* file = NULL;
-	file = fopen("models.txt", "w");
-	fprintf(file, "Results - Models\n\n");
-	fclose(file);
 
 	fprintf(stderr," -----------------------------------------------------------------------------------------------------------------------\n");
 	fprintf(stderr,"|                                 PSATMiner    %i thread(s) on %i core(s)                                                |\n", coop.nbThreads, omp_get_num_procs()); 
@@ -162,50 +150,7 @@ int main(int argc, char** argv)
 		
 	
 		
-	lbool ret;
 	lbool result;
-	double time_elapsed = 0.0;
-	time_t begin = time(NULL);
-	
-	// launch threads in Parallel 	
-
-#pragma omp parallel
-	{
-	  int t = omp_get_thread_num();
-	  coop.start = true;
-	  coop.solvers[t].EncodeDB(&coop);
-	  ret = coop.solvers[t].solve_(&coop);
-	}
-
-	time_t end = time(NULL);
-	time_elapsed = difftime(end, begin);
-
-	fprintf(stderr, "time elapsed: %f\n", time_elapsed);
-	
-	
-	int cpt = 0;
-	// each worker print its models
-	fprintf(stderr,"-----------------------------------------------\n");
-	fprintf(stderr,"thread | nb models          | nb conflicts    |\n");
-	fprintf(stderr,"-----------------------------------------------\n");
-
-	int nbcls = 0;
-	for(int t = 0; t < coop.nThreads(); t++){
-	  cpt +=  coop.solvers[t].nbModels;
-	  nbcls += coop.solvers[t].nbClauses;
-	  fprintf(stderr, "  %2d   |   %15d  | %d \n", t, coop.solvers[t].nbModels, (int)coop.solvers[t].conflicts);
-	  //printf("-----------------------------------------------\n");
-	  //coop.solvers[t].AfficheModel();
-	}
-	fprintf(stderr, "-----------------------------------------------\n");
-	fprintf(stderr, "total  | %15d    | \n", cpt);
-	fprintf(stderr, "-----------------------------------------------\n");
-	
-	fprintf(stderr, "#total Clauses  : %15d     \n", nbcls);
-
-	printf("Terminating...");
-
-	delay(3600000);
        
 #ifdef NDEBUG
         exit(result == l_True ? 10 : result == l_False ? 20 : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
