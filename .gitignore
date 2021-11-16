@@ -15,3 +15,4 @@ deployement_objects/registry_access.txt
 code/slave/core/kafka.log
 dockerfile
 data/France_tripAdvisorSAT.dat
+code/parallelItemsets-Imen/core/models.txt
