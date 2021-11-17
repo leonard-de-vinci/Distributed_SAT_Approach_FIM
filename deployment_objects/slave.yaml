@@ -33,8 +33,6 @@ spec:
               value: earliest
             - name: KAFKAPORT
               value: "29092"
-            - name: MINSUPPORT
-              value: "500"
             - name: MONGOADDR
               value: mongodb
             - name: MONGOPASS
