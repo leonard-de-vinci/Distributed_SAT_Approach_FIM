@@ -1,7 +1,6 @@
 FROM flexiboy/core
 
-ENV MINSUPPORT=500
-ENV NCORES=2
+ENV NCORES=1
 
 ENV MONGOUSER=root
 ENV MONGOPASS=root
@@ -16,7 +15,6 @@ ENV KAFKAOFTRST=earliest
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 
 ADD ./code/slave ./code/slave
-ADD ./data ./data
 
 RUN cd code/slave/core\
 	&& echo "username=${MONGOUSER}" > mongo.config\
@@ -32,4 +30,4 @@ RUN cd code/slave/core\
 
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/code/slave/core
 
-ENTRYPOINT ./slave -minSupport=${MINSUPPORT} -ncores=${NCORES}
+ENTRYPOINT ./slave -ncores=${NCORES}
