@@ -367,15 +367,15 @@ int main(int argc, char** argv)
                 tab_documents[i] = document;
             }
 
-            bson_destroy(document);
-
             if (!mongoc_collection_insert_many(collection, (const bson_t**) tab_documents, (size_t) coop.tabTransactions.size(), NULL, NULL, &error)){
                 fprintf (stderr, "%s\n", error.message);
                 sent = false;
             }
 
-            for(int i = 0; i < coop.tabTransactions.size(); i++)
-                bson_destroy(tab_documents[i]);
+            bson_destroy(document);
+
+            // for(int i = 0; i < coop.tabTransactions.size(); i++)
+            //     bson_destroy(tab_documents[i]);
 
             if(sent)
                 fprintf(stderr, "Tab transactions sent\n");
@@ -404,15 +404,15 @@ int main(int argc, char** argv)
                 app_documents[i] = document;
             }
 
-            bson_destroy(document);
-
             if (!mongoc_collection_insert_many(collection, (const bson_t**) app_documents, (size_t) coop.appearTrans.size(), NULL, NULL, &error)){
                 fprintf (stderr, "%s\n", error.message);
                 sent = false;
             }
 
-            for(int i = 0; i < coop.appearTrans.size(); i++)
-                bson_destroy(app_documents[i]);
+            bson_destroy(document);
+
+            // for(int i = 0; i < coop.appearTrans.size(); i++)
+            //     bson_destroy(app_documents[i]);
 
             if(sent)
                 fprintf(stderr, "Appear trans sent\n");

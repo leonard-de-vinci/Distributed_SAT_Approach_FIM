@@ -644,15 +644,15 @@ int main(int argc, char** argv)
 			documents[i] = document;
         }
 
-		bson_destroy(document);
-
 		if (!mongoc_collection_insert_many(collection, (const bson_t**) documents, (size_t) coop.models.size(), NULL, NULL, &error)){
             fprintf (stderr, "%s\n", error.message);
             sent = false;
         }
 
-        for(int i = 0; i < coop.models.size(); i++)
-            bson_destroy(documents[i]);
+		bson_destroy(document);
+
+        // for(int i = 0; i < coop.models.size(); i++)
+        //     bson_destroy(documents[i]);
 
         if(sent)
             fprintf(stderr, "Models sent\n");
