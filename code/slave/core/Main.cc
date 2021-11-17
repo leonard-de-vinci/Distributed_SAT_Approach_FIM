@@ -92,16 +92,13 @@ int main(int argc, char** argv)
         IntOption    cpu_lim("MAIN", "cpu-lim","Limit on CPU time allowed in seconds.\n", INT32_MAX, IntRange(0, INT32_MAX));
         IntOption    mem_lim("MAIN", "mem-lim","Limit on memory usage in megabytes.\n", INT32_MAX, IntRange(0, INT32_MAX));
 		IntOption    ncores ("MAIN", "ncores","# threads.\n", 1,  IntRange(0, INT32_MAX));//IntRange(1, omp_get_num_procs()));
-		IntOption    Freq    ("MAIN", "minSupport","# ....\n", 10,  IntRange(1, 100000000));//IntRange(1, omp_get_num_procs()));
 	
         parseOptions(argc, argv, true);
 
 		int nbThreads   = ncores;
 		int nsolvers	= 0;
 		Cooperation coop(nbThreads);
-	
-		coop.min_supp = Freq;
-	
+		
 		for(int t = 0; t < nbThreads; t++){
 	  		coop.solvers[t].threadId = t;
 	  		coop.solvers[t].verbosity = verb;
@@ -249,6 +246,8 @@ int main(int argc, char** argv)
 								n_trans = value->value.v_int32;
 							else if(strcmp(key, "appear_trans") == 0)
 								n_appear_trans = value->value.v_int32;
+							else if(strcmp(key, "min_support") == 0)
+								coop.min_supp = value->value.v_int32;
 						}
 					}
 				}

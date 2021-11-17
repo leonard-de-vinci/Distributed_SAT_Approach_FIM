@@ -301,6 +301,10 @@ int main(int argc, char** argv)
         BSON_APPEND_INT32(&child, "number", coop.appearTrans.size());
         bson_append_document_end(document, &child);
 
+        BSON_APPEND_DOCUMENT_BEGIN(document, "min_support", &child);
+        BSON_APPEND_INT32(&child, "number", coop.min_supp);
+        bson_append_document_end(document, &child);
+
         if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
             fprintf (stderr, "%s\n", error.message);
             sent = false;
@@ -374,9 +378,6 @@ int main(int argc, char** argv)
 
             bson_destroy(document);
 
-            // for(int i = 0; i < coop.tabTransactions.size(); i++)
-            //     bson_destroy(tab_documents[i]);
-
             if(sent)
                 fprintf(stderr, "Tab transactions sent\n");
 
@@ -410,9 +411,6 @@ int main(int argc, char** argv)
             }
 
             bson_destroy(document);
-
-            // for(int i = 0; i < coop.appearTrans.size(); i++)
-            //     bson_destroy(app_documents[i]);
 
             if(sent)
                 fprintf(stderr, "Appear trans sent\n");
@@ -613,11 +611,6 @@ int main(int argc, char** argv)
                 previous_count = count;
             }
             delay(1000);
-            // wait_time++;
-            // if(wait_time > 300){
-            //     nbsolvers = count;
-            //     goto kafka;
-            // }
         }while((count = mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error)) != nsolvers);
 
         mongoc_cursor_destroy(cursor);
