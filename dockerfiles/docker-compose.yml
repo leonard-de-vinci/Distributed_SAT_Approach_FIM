@@ -51,7 +51,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
     volumes: 
-      - /Users/Flexiboy/Desktop/Courses/Distributed_SAT_Approach/data/db
+      - /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach/data/db
     ports: 
       - 27017:27017
     restart: always
