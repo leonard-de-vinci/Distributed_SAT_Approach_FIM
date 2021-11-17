@@ -520,21 +520,12 @@ int main(int argc, char** argv)
             fprintf(log, "%s | %%Message on %s [%"PRId32"] at offset %"PRId64": %s\n", gettime(), rd_kafka_topic_name(rkm->rkt), rkm->partition, rkm->offset, (const char *)rkm->payload);
 			fprintf(stderr, "%s | %%Message on %s [%"PRId32"] at offset %"PRId64": %s\n", gettime(), rd_kafka_topic_name(rkm->rkt), rkm->partition, rkm->offset, (const char *)rkm->payload);
 
-            // /* Print the message key. */
-            // if((const char *)rkm->key && is_printable((const char *)rkm->key, rkm->key_len))
-            //     printf(" Key: %.*s\n", (int)rkm->key_len, (const char *)rkm->key);
-            // else if((const char *)rkm->key)
-        	// 	printf(" Key: (%d bytes)\n", (int)rkm->key_len);
-
             /* Print the message value/payload. */
             if((const char *)rkm->payload && is_printable((const char *)rkm->payload, rkm->len)){
 				message = (char *) malloc((int)rkm->len + 1);
 				sprintf(message, (const char *)rkm->payload);
 			}
-                // printf(" Value: %.*s\n", (int)rkm->len, (const char *)rkm->payload);
-            // else if((const char *)rkm->payload)
-            //     printf(" Value: (%d bytes)\n", (int)rkm->len);
-
+            
 			if(strcmp(message, "end") != 0)
 				infos.push(atoi(message));
 			else
@@ -649,9 +640,6 @@ int main(int argc, char** argv)
         }
 
 		bson_destroy(document);
-
-        // for(int i = 0; i < coop.models.size(); i++)
-        //     bson_destroy(documents[i]);
 
         if(sent)
             fprintf(stderr, "Models sent\n");
