@@ -626,6 +626,7 @@ int main(int argc, char** argv)
 
 		database = mongoc_client_get_database(client, "solvers");
 		collection = mongoc_client_get_collection(client, "solvers", "models");
+		bson_t *documents[coop.models.size()];
 		
 		for(int i = 0; i < coop.models.size(); i++){
             document = bson_new();
@@ -640,14 +641,18 @@ int main(int argc, char** argv)
                 bson_append_int32(&child2, key, -1, coop.models[i][j]);
             }
             bson_append_array_end(document, &child2);
-
-            if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-                fprintf (stderr, "%s\n", error.message);
-                sent = false;
-            }
-
-            bson_destroy(document);
+			documents[i] = document;
         }
+
+		bson_destroy(document);
+
+		if (!mongoc_collection_insert_many(collection, (const bson_t**) documents, (size_t) coop.models.size(), NULL, NULL, &error)){
+            fprintf (stderr, "%s\n", error.message);
+            sent = false;
+        }
+
+        for(int i = 0; i < coop.models.size(); i++)
+            bson_destroy(documents[i]);
 
         if(sent)
             fprintf(stderr, "Models sent\n");

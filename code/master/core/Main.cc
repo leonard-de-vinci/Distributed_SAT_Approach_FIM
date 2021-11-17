@@ -346,11 +346,12 @@ int main(int argc, char** argv)
 
             // Tab Transactions
             collection = mongoc_client_get_collection(client, "dataset", "tab_transactions");
+            bson_t *tab_documents[coop.tabTransactions.size()];
 
             for(int i = 0; i < coop.tabTransactions.size(); i++){
                 document = bson_new();
                 bson_oid_init(&oid, NULL);
-                BSON_APPEND_OID (document, "_id", &oid);
+                BSON_APPEND_OID(document, "_id", &oid);
                 
                 sprintf(temp, "transaction");
                 BSON_APPEND_ARRAY_BEGIN(document, temp, &child);
@@ -363,14 +364,18 @@ int main(int argc, char** argv)
                     bson_append_int32(&child, key, -1, val);
                 }
                 bson_append_array_end(document, &child);
-
-                if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-                    fprintf (stderr, "%s\n", error.message);
-                    sent = false;
-                }
-
-                bson_destroy(document);
+                tab_documents[i] = document;
             }
+
+            bson_destroy(document);
+
+            if (!mongoc_collection_insert_many(collection, (const bson_t**) tab_documents, (size_t) coop.tabTransactions.size(), NULL, NULL, &error)){
+                fprintf (stderr, "%s\n", error.message);
+                sent = false;
+            }
+
+            for(int i = 0; i < coop.tabTransactions.size(); i++)
+                bson_destroy(tab_documents[i]);
 
             if(sent)
                 fprintf(stderr, "Tab transactions sent\n");
@@ -381,6 +386,7 @@ int main(int argc, char** argv)
 
             // Appear Trans
             collection = mongoc_client_get_collection(client, "dataset", "appear_trans");
+            bson_t *app_documents[coop.appearTrans.size()];
 
             for(int i = 0; i < coop.appearTrans.size(); i++){
                 document = bson_new();
@@ -395,14 +401,18 @@ int main(int argc, char** argv)
                     bson_append_int32(&child, key, (int) keylen, coop.appearTrans[i][j]);
                 }
                 bson_append_array_end(document, &child);
-
-                if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-                    fprintf (stderr, "%s\n", error.message);
-                    sent = false;
-                }
-
-                bson_destroy(document);
+                app_documents[i] = document;
             }
+
+            bson_destroy(document);
+
+            if (!mongoc_collection_insert_many(collection, (const bson_t**) app_documents, (size_t) coop.appearTrans.size(), NULL, NULL, &error)){
+                fprintf (stderr, "%s\n", error.message);
+                sent = false;
+            }
+
+            for(int i = 0; i < coop.appearTrans.size(); i++)
+                bson_destroy(app_documents[i]);
 
             if(sent)
                 fprintf(stderr, "Appear trans sent\n");
