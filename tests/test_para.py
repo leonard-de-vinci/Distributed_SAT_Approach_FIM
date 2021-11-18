@@ -32,7 +32,7 @@ def main():
     test.write("ncores;minsupport;time_elapsed\n")
     test.close()
         
-    for n in enumerate(nSolvers):
+    for n in nCores:
         test = open(f"tests-{dataset}-parallel.csv", "a")
         subprocess.run(['kubectl', 'set', 'env', 'deployment/parallel', f'NCORES={n}'])
         for i, support in enumerate(minSupport):
