@@ -167,6 +167,7 @@ int main(int argc, char** argv)
         bson_error_t error;
 		bson_oid_t oid;
 		bson_iter_t iter, child;
+		bool send;
 
 		vec<Lit> items_temp;
 		vec<Lit> trans_temp;
@@ -201,14 +202,20 @@ int main(int argc, char** argv)
 
 		BSON_APPEND_DOCUMENT_BEGIN(document, "solver", &child2);
         BSON_APPEND_INT32(&child2, "ncores", nbThreads);
-        bson_append_document_end(document, &child2);
+        bson_append_document_end(document, &child2);		
 
-		if (!mongoc_collection_insert_one(collection, document, NULL, NULL, &error)){
-            fprintf (stderr, "%s\n", error.message);
-        }
-        else{
-            fprintf(stderr, "Solver configuration sent\n\n");
-        }
+		for(int i = 0; i < 10; i++){
+			if (!(send = mongoc_collection_insert_one(collection, document, NULL, NULL, &error)))
+            	fprintf (stderr, "%s, retrying...\n", error.message);
+        	else
+				break;
+			delay(200);
+		}
+
+		if(!send)
+			return EXIT_FAILURE;
+
+		fprintf(stderr, "Solver configuration sent\n\n");
 
         bson_destroy(document);
         mongoc_collection_destroy(collection);
