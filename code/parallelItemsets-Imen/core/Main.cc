@@ -207,7 +207,7 @@ int main(int argc, char** argv)
 	
 	fprintf(stderr, "#total Clauses  : %15d     \n", nbcls);
 
-	fprintf(stderr, "Terminating...");
+	fprintf(stderr, "Terminating...\n");
 
 	fprintf(stderr, "Press Enter to continue...%c", getchar());
 
