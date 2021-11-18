@@ -28,7 +28,6 @@ def init(dataset, minSupport):
     subprocess.run(['kubectl', 'set', 'env', 'deployment/master', f'MINSUPPORT={minSupport}'])
     subprocess.run(['kubectl', 'set', 'env', 'deployment/master', 'RESET=0'])
     subprocess.run(['kubectl', 'set', 'env', 'deployment/slave', 'NCORES=1'])
-    subprocess.run(['kubectl', 'set', 'env', 'deployment/slave', f'MINSUPPORT={minSupport}'])
     subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '1'])
     subprocess.run(['sleep', '10'])
 
@@ -101,7 +100,6 @@ def main():
         test.write(f"nsolvers: {n}\n")
         for support in minSupport:
             subprocess.run(['kubectl', 'set', 'env', 'deployment/master', f'MINSUPPORT={support}'])
-            subprocess.run(['kubectl', 'set', 'env', 'deployment/slave', f'MINSUPPORT={support}'])
             subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '1'])
             
             master = subprocess.Popen(['kubectl', 'get', 'pods', '--no-headers'], stdout = subprocess.PIPE)
