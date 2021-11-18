@@ -7,7 +7,8 @@ import os
 import re
 import sys
 
-nSolvers = [1, 2, 4, 8, 10, 12, 16, 20, 24]
+#nSolvers = [1, 2, 4, 8, 10, 12, 16, 20, 24]
+nSolvers = [1, 2]
 
 def getMinSupport():
     n = int(input("Number of minSupport: "))
@@ -17,6 +18,7 @@ def getMinSupport():
     return minSupport
 
 def init(dataset, minSupport):
+    send_time = ""
     subprocess.run(['kubectl', 'scale', 'deployment', '--all', '--replicas', '0'])
     subprocess.run(['kubectl', 'scale', 'deployment', 'zookeeper', '--replicas', '1'])
     subprocess.run(['kubectl', 'scale', 'deployment', 'broker', '--replicas', '1'])
@@ -29,7 +31,6 @@ def init(dataset, minSupport):
     subprocess.run(['kubectl', 'set', 'env', 'deployment/master', 'RESET=0'])
     subprocess.run(['kubectl', 'set', 'env', 'deployment/slave', 'NCORES=1'])
     subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '1'])
-    subprocess.run(['sleep', '10'])
 
     master = subprocess.Popen(['kubectl', 'get', 'pods', '--no-headers'], stdout = subprocess.PIPE)
     master = str(master.communicate()).split("\\n")
@@ -59,7 +60,6 @@ def init(dataset, minSupport):
     subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', '1'])
     
     master = master[0].split(" ")[0]
-    print(f"master: {master}")
 
     value = ""
     r = re.compile("Terminating.*")
@@ -70,16 +70,21 @@ def init(dataset, minSupport):
         value = list(filter(r.match, value))
         if (value != []):
             value = value[0].split("\\n")[0]
-    
-    print(f"value: {value}")
-    
-    subprocess.run(['touch', f'test-{dataset}.txt'])
+
+    send_time = subprocess.Popen(f'kubectl logs {master} | grep "Data sending time:"', shell = True, stdout = subprocess.PIPE)
+    send_time = str(send_time.communicate()).split("'")
+    r = re.compile("Data sending time:.*")
+    send_time = list(filter(r.match, send_time))[0].split("\\n")[0].split(" ")[3]
+        
     subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', '0'])
     subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '0'])
     subprocess.run(['kubectl', 'set', 'env', 'deployment/master', 'RESET=1'])
 
+    return send_time
+
 
 def main():
+    send_time = ""
     if len(sys.argv) < 4:
         print("Usage: scpript.py dataset minSupport_init minSupport1 ... minSupportn")
         exit
@@ -89,16 +94,16 @@ def main():
     for i in range(3, len(sys.argv)):
         minSupport.append(int(sys.argv[i]))
     print("Initializing...")
-    init(dataset, minSupport_init)
+    send_time = init(dataset, minSupport_init)
     print("Initialized")
-    test = open(f"tests-{dataset}.txt", "w")
-    test.write("")
+    test = open(f"tests-{dataset}.csv", "w")
+    test.write("nsolvers;minsupport;time_elapsed;send_time\n")
     test.close()
-    test = open(f"tests-{dataset}.txt", "a")
-    for n in nSolvers:
+        
+    for i, n in enumerate(nSolvers):
+        test = open(f"tests-{dataset}.csv", "a")
         subprocess.run(['kubectl', 'set', 'env', 'deployment/master', f'NSOLVERS={n}'])
-        test.write(f"nsolvers: {n}\n")
-        for support in minSupport:
+        for j, support in enumerate(minSupport):
             subprocess.run(['kubectl', 'set', 'env', 'deployment/master', f'MINSUPPORT={support}'])
             subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '1'])
             
@@ -114,7 +119,6 @@ def main():
                 master = list(filter(r.match, master))
             
             master = master[0].split(" ")[0]
-            print(f"master: {master}")
             
             status = subprocess.Popen(['kubectl', 'get', 'pods', '--no-headers'], stdout = subprocess.PIPE)
             status = str(status.communicate()).split("\\n")
@@ -129,11 +133,9 @@ def main():
                 status = list(filter(r.match, status))[0].split(" ")
                 r = re.compile(".*Running.*")
                 status = list(filter(r.match, status))
-                print(f"status: {status}")
 
             subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', f'{n}'])
 
-            test.write(f"minSupport: {support}\n")
             print(f"Calculating for:\nnsolvers: {n}\nminSupport: {support}")
             
             value = ""
@@ -150,12 +152,19 @@ def main():
             value = str(value.communicate()).split("'")
             r = re.compile("max solving time:.*")
             value = list(filter(r.match, value))[0].split("\\n")[0]
-            test.write(f"{value}\n")
+            value = value.split(" ")[3]
+            if j == 0:
+                if i == 0:
+                    test.write(f"{n};{support};{value};{send_time}\n")
+                else:
+                    test.write(f"{n};{support};{value};\n")
+            else:
+                test.write(f";{support};{value};\n")
             print(value)
             subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', '0'])
             subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '0'])
-        test.write("\n\n")
-    test.close()
+        test.write(";;;\n")
+        test.close()
 
 if __name__ == '__main__':
     main()
