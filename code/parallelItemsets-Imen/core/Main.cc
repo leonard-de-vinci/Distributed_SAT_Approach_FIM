@@ -22,6 +22,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <signal.h>
 #include <zlib.h>
 #include <time.h>
+#include <sys/time.h>
 
 #include "../utils/System.h"
 #include "../utils/ParseUtils.h"
@@ -38,6 +39,9 @@ void delay(int duration){
 		;
 }
 
+float diff_time(struct timespec start, struct timespec end){
+    return (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+}
 
 // Main:
 
@@ -164,8 +168,8 @@ int main(int argc, char** argv)
 		
 	lbool ret;
 	lbool result;
-	double time_elapsed = 0.0;
-	time_t begin = time(NULL);
+	struct timespec begin;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
 	
 	// launch threads in Parallel 	
 
@@ -177,10 +181,10 @@ int main(int argc, char** argv)
 	  ret = coop.solvers[t].solve_(&coop);
 	}
 
-	time_t end = time(NULL);
-	time_elapsed = difftime(end, begin);
+	struct timespec end;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &end);
 
-	fprintf(stderr, "time elapsed: %f\n", time_elapsed);
+	fprintf(stderr, "time elapsed: %0.2f\n", diff_time(begin, end));
 	
 	
 	int cpt = 0;

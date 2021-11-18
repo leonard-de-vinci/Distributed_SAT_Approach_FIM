@@ -28,6 +28,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <unistd.h>
 #include <string>
 #include <time.h>
+#include <sys/time.h>
 
 #include <librdkafka/rdkafka.h>
 #include <bson/bson.h>
@@ -70,6 +71,10 @@ static int is_printable (const char *buf, size_t size){
 
 static void stop (int sig){
     run = 0;
+}
+
+float diff_time(struct timespec start, struct timespec end){
+    return (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
 }
 
 // Main:
@@ -305,7 +310,7 @@ int main(int argc, char** argv)
 		do
 		{
 			delay(1000);
-			fprintf(stderr, "On MongoDB, collection tab_transaction: n_trans: %d; n_docs: %d\n", n_trans, mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
+			fprintf(stderr, "On MongoDB, collection tab_transaction: n_trans: %d; n_docs: %d\n", n_trans, (int) mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
 		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != n_trans);
 
 		while(mongoc_cursor_next(cursor, &tab_transactions)){
@@ -346,7 +351,7 @@ int main(int argc, char** argv)
 		do
 		{
 			delay(1000);
-			fprintf(stderr, "On MongoDB, collection appear_trans: n_appear_trans: %d; n_doc: %d\n", n_appear_trans, mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
+			fprintf(stderr, "On MongoDB, collection appear_trans: n_appear_trans: %d; n_doc: %d\n", n_appear_trans, (int) mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error));
 		} while(mongoc_collection_count_documents(collection, query, NULL, NULL, NULL, &error) != n_appear_trans);
 
 		while(mongoc_cursor_next(cursor, &appear_trans)){
@@ -554,8 +559,9 @@ int main(int argc, char** argv)
         
 		lbool ret;
 		lbool result;
-		double time_elapsed = 0.0;
-		time_t begin = time(NULL);
+		float time_elapsed = 0.0;
+		struct timespec begin;
+		clock_gettime(CLOCK_MONOTONIC_RAW, &begin);
 		time_t rawtime1;
 		time_t rawtime2;
 		struct tm *start_date;
@@ -576,9 +582,10 @@ int main(int argc, char** argv)
 			ret = coop.solvers[t].solve_(&coop);
 		}
 
-		time_t end = time(NULL);
-		time_elapsed = difftime(end, begin);
-		fprintf(stderr, "time elapsed: %f\n", time_elapsed);
+		struct timespec end;
+		clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+		time_elapsed = diff_time(begin, end);
+		fprintf(stderr, "time elapsed: %0.2f\n", time_elapsed);
 		time(&rawtime2);
 		end_date = localtime(&rawtime2);
 		strftime(temp, 30, "%H%M%S", end_date);
@@ -661,7 +668,7 @@ int main(int argc, char** argv)
 		bson_append_document_end(document, &child2);
 
 		BSON_APPEND_DOCUMENT_BEGIN(document, "time_elapsed", &child2);
-        BSON_APPEND_DOUBLE(&child2, "processing time (in ms)", time_elapsed);
+        BSON_APPEND_DOUBLE(&child2, "processing time (in s)", time_elapsed);
         bson_append_document_end(document, &child2);
 
 		BSON_APPEND_DOCUMENT_BEGIN(document, "start_time", &child2);

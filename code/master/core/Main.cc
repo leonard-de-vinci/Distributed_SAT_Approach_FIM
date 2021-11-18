@@ -26,6 +26,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <string>
 #include <iostream>
 #include <time.h>
+#include <sys/time.h>
 
 #include <librdkafka/rdkafka.h>
 #include <bson/bson.h>
@@ -72,6 +73,10 @@ static void dr_msg_cb (rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void
 static void stop (int sig){
     run = 0;
     fclose(stdin);
+}
+
+float diff_time(struct timespec start, struct timespec end){
+    return (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
 }
 
 // Main:
@@ -275,7 +280,8 @@ int main(int argc, char** argv)
         fprintf(stderr, "Solvers configurations received\n");
 
         fprintf(stderr, "Transmitting data to mongoDB database...\n");
-        time_t start_send = time(NULL);
+        struct timespec start_send;
+        clock_gettime(CLOCK_MONOTONIC_RAW, &start_send);
 
         database = mongoc_client_get_database(client, "dataset");
 
@@ -421,7 +427,6 @@ int main(int argc, char** argv)
         mongoc_database_destroy(database);
 
         fprintf(stderr, "\n");
-        time_t end_send = time(NULL);
 
 
 
@@ -436,7 +441,6 @@ int main(int argc, char** argv)
         char errstr[512]; //librdkafka API error reporting buffer
         char buff[512]; //Message value temporary buffer
         FILE *log = fopen("kafka.log", "a");
-        int partition = 0;
 
         const char *topic = "guiding_path";
         const char *config_file = "librdkafka.config";
@@ -575,6 +579,9 @@ int main(int argc, char** argv)
             fprintf(stderr, "%% All messages were delivered\n");
         }
 
+        struct timespec end_send;
+        clock_gettime(CLOCK_MONOTONIC_RAW, &end_send);
+
         fclose(log);
 
         fprintf(stderr, "\n");
@@ -597,7 +604,6 @@ int main(int argc, char** argv)
         int count = 0;
         int previous_count = 0;
         int index = 0;
-        int wait_time = 0;
 
         database = mongoc_client_get_database(client, "solvers");
 		query = bson_new();
@@ -713,7 +719,7 @@ int main(int argc, char** argv)
             }
         }
 
-        fprintf(stderr, "max solving time: %f\n", max_time);
+        fprintf(stderr, "max solving time: %0.2f\n", max_time);
 
         fprintf(stderr, "max_end: %d, min_start: %d\n", max_end, min_start);
 
@@ -721,7 +727,7 @@ int main(int argc, char** argv)
         sprintf(user_time, "%d", max_end - min_start);
 
         fprintf(stderr, "User time: %s\n", user_time);
-        fprintf(stderr, "Data sending time: %f\n", difftime(end_send, start_send));
+        fprintf(stderr, "Data sending time: %0.2f\n", diff_time(start_send, end_send));
 
         fprintf(stderr, "Terminating...\n");
 
