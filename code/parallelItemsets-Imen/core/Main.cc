@@ -209,6 +209,8 @@ int main(int argc, char** argv)
 
 	printf("Terminating...");
 
+	printf("Press Enter to continue...%c", getchar());
+
 	delay(3600000);
        
 #ifdef NDEBUG
