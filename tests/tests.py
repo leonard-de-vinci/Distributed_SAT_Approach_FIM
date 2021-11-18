@@ -8,7 +8,7 @@ import re
 import sys
 
 #nSolvers = [1, 2, 4, 8, 10, 12, 16, 20, 24]
-nSolvers = [1, 2]
+nSolvers = [1, 4, 8, 16, 24]
 
 def getMinSupport():
     n = int(input("Number of minSupport: "))
@@ -84,44 +84,49 @@ def init(dataset, minSupport):
 
 
 
-def test_parallel(minSupport):
+def test_parallel(minSupport, dataset):
     print("Initializing...")
     subprocess.run(['kubectl', 'set', 'env', 'deployment/parallel', f'DATASET=../../../data/{dataset}.dat'])
     print("Initialized")
-    test = open(f"tests-{dataset}-parallel.csv", "w")
-    test.write("ncores;minsupport;time_elapsed\n")
-    test.close()
+    results = []
         
-    for n in nCores:
-        test = open(f"tests-{dataset}-parallel.csv", "a")
+    for i, n in enumerate(nSolvers):
         subprocess.run(['kubectl', 'set', 'env', 'deployment/parallel', f'NCORES={n}'])
-        for i, support in enumerate(minSupport):
+        results.append([])
+        for j, support in enumerate(minSupport):
             subprocess.run(['kubectl', 'set', 'env', 'deployment/parallel', f'MINSUPPORT={support}'])
             subprocess.run(['kubectl', 'scale', 'deployment', 'parallel', '--replicas', '1'])
             
             parallel = subprocess.Popen(['kubectl', 'get', 'pods', '--no-headers'], stdout = subprocess.PIPE)
-            parallel = str(parallel.communicate()).split("\\n")
+            parallel = str(parallel.communicate()).split("'")
 
+            r = re.compile(".*parallel.*")
+            parallel = list(filter(r.match, parallel))[0].split("\\n")
             r = re.compile("parallel.*")
             parallel = list(filter(r.match, parallel))
-
+            
             while(len(parallel) != 1):
                 parallel = subprocess.Popen(['kubectl', 'get', 'pods', '--no-headers'], stdout = subprocess.PIPE)
-                parallel = str(parallel.communicate()).split("\\n")
+                parallel = str(parallel.communicate()).split("'")
+                r = re.compile(".*parallel.*")
+                parallel = list(filter(r.match, parallel))[0].split("\\n")
+                r = re.compile("parallel.*")
                 parallel = list(filter(r.match, parallel))
             
             parallel = parallel[0].split(" ")[0]
             
             status = subprocess.Popen(['kubectl', 'get', 'pods', '--no-headers'], stdout = subprocess.PIPE)
             status = str(status.communicate()).split("\\n")
+            r = re.compile(".*parallel.*")
             status = list(filter(r.match, status))[0].split(" ")
             r = re.compile(".*Running.*")
             status = list(filter(r.match, status))
 
+
             while(status == []):
                 status = subprocess.Popen(['kubectl', 'get', 'pods', '--no-headers'], stdout = subprocess.PIPE)
                 status = str(status.communicate()).split("\\n")
-                r = re.compile("parallel.*")
+                r = re.compile(".*parallel.*")
                 status = list(filter(r.match, status))[0].split(" ")
                 r = re.compile(".*Running.*")
                 status = list(filter(r.match, status))
@@ -140,40 +145,42 @@ def test_parallel(minSupport):
             value = str(value.communicate()).split("'")
             r = re.compile("time elapsed:.*")
             value = list(filter(r.match, value))[0].split("\\n")[0]
+            print(i)
+            print(results)
             value = value.split(" ")[2]
-            if i == 0:
-                test.write(f"{n};{support};{value}\n")
-            else:
-                test.write(f";{support};{value}\n")
+            results[i].append(float(value))
             subprocess.run(['kubectl', 'scale', 'deployment', 'parallel', '--replicas', '0'])
-        test.write(";;\n")
-        test.close()
+    return results
 
-def test_distrib(minSupport_init, minSupport):
+def test_distrib(minSupport_init, minSupport, dataset):
     send_time = ""
     print("Initializing...")
     send_time = init(dataset, minSupport_init)
     print("Initialized")
-    test = open(f"tests-{dataset}-distrib.csv", "w")
-    test.write("nsolvers;minsupport;time_elapsed;send_time\n")
-    test.close()
+
+    results = []
         
     for i, n in enumerate(nSolvers):
-        test = open(f"tests-{dataset}-distrib.csv", "a")
         subprocess.run(['kubectl', 'set', 'env', 'deployment/master', f'NSOLVERS={n}'])
+        results.append([])
         for j, support in enumerate(minSupport):
             subprocess.run(['kubectl', 'set', 'env', 'deployment/master', f'MINSUPPORT={support}'])
             subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '1'])
             
             master = subprocess.Popen(['kubectl', 'get', 'pods', '--no-headers'], stdout = subprocess.PIPE)
-            master = str(master.communicate()).split("\\n")
+            master = str(master.communicate()).split("'")
 
+            r = re.compile(".*master.*")
+            master = list(filter(r.match, master))[0].split("\\n")
             r = re.compile("master.*")
             master = list(filter(r.match, master))
 
             while(len(master) != 1):
                 master = subprocess.Popen(['kubectl', 'get', 'pods', '--no-headers'], stdout = subprocess.PIPE)
-                master = str(master.communicate()).split("\\n")
+                master = str(master.communicate()).split("'")
+                r = re.compile(".*master.*")
+                master = list(filter(r.match, master))[0].split("\\n")
+                r = re.compile("master.*")
                 master = list(filter(r.match, master))
             
             master = master[0].split(" ")[0]
@@ -192,6 +199,8 @@ def test_distrib(minSupport_init, minSupport):
                 r = re.compile(".*Running.*")
                 status = list(filter(r.match, status))
 
+            subprocess.run(['sleep', '3'])
+
             subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', f'{n}'])
             
             value = ""
@@ -209,17 +218,12 @@ def test_distrib(minSupport_init, minSupport):
             r = re.compile("max solving time:.*")
             value = list(filter(r.match, value))[0].split("\\n")[0]
             value = value.split(" ")[3]
-            if j == 0:
-                if i == 0:
-                    test.write(f"{n};{support};{value};{send_time}\n")
-                else:
-                    test.write(f"{n};{support};{value};\n")
-            else:
-                test.write(f";{support};{value};\n")
+            results[i].append(float(value))
             subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', '0'])
             subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '0'])
-        test.write(";;;\n")
-        test.close()
+
+    subprocess.run(['kubectl', 'scale', 'deployment', '--all', '--replicas', '0'])
+    return results, send_time
 
 def main():
     if len(sys.argv) < 4:
@@ -230,9 +234,24 @@ def main():
     minSupport = []
     for i in range(3, len(sys.argv)):
         minSupport.append(int(sys.argv[i]))
-    test_distrib(minSupport_init, minSupport)
-    test_parallel(minSupport)
+    results_distrib, send_time = test_distrib(minSupport_init, minSupport, dataset)
+    results_para = test_parallel(minSupport, dataset)
 
+    test = open(f"{dataset}.csv", "w")
+    test.write("minSupport;DSATminer-1s;PSATminer-1c;DSATminer-4s;PSATminer-4c;DSATminer-8s;PSATminer-8c;DSATminer-16s;PSATminer-16c;DSATminer-24s;PSATminer-24c;Send_time\n")
+    test.close()
+
+    test = open(f"{dataset}.csv", "a")
+
+    for i, support in enumerate(minSupport):
+        test.write(f"{support};")
+        for j, n in enumerate(nSolvers):
+            test.write(f"{results_distrib[i][j]};{results_para[i][j]};")
+        if i == 0:
+            test.write(f"{send_time}")
+        test.write("\n")
+    
+    test.close()
 
 if __name__ == '__main__':
     main()
