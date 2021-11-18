@@ -86,7 +86,7 @@ def main():
             else:
                 test.write(f";{support};{value}\n")
             subprocess.run(['kubectl', 'scale', 'deployment', 'parallel', '--replicas', '0'])
-        test.write(";;;\n")
+        test.write(";;\n")
         test.close()
 
 if __name__ == '__main__':
