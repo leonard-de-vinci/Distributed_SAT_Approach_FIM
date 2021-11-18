@@ -207,9 +207,9 @@ int main(int argc, char** argv)
 	
 	fprintf(stderr, "#total Clauses  : %15d     \n", nbcls);
 
-	printf("Terminating...");
+	fprintf(stderr, "Terminating...");
 
-	printf("Press Enter to continue...%c", getchar());
+	fprintf(stderr, "Press Enter to continue...%c", getchar());
 
 	delay(3600000);
        
