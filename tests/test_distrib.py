@@ -96,12 +96,12 @@ def main():
     print("Initializing...")
     send_time = init(dataset, minSupport_init)
     print("Initialized")
-    test = open(f"tests-{dataset}.csv", "w")
+    test = open(f"tests-{dataset}-distrib.csv", "w")
     test.write("nsolvers;minsupport;time_elapsed;send_time\n")
     test.close()
         
     for i, n in enumerate(nSolvers):
-        test = open(f"tests-{dataset}.csv", "a")
+        test = open(f"tests-{dataset}-distrib.csv", "a")
         subprocess.run(['kubectl', 'set', 'env', 'deployment/master', f'NSOLVERS={n}'])
         for j, support in enumerate(minSupport):
             subprocess.run(['kubectl', 'set', 'env', 'deployment/master', f'MINSUPPORT={support}'])
@@ -135,8 +135,6 @@ def main():
                 status = list(filter(r.match, status))
 
             subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', f'{n}'])
-
-            print(f"Calculating for:\nnsolvers: {n}\nminSupport: {support}")
             
             value = ""
             r = re.compile("Terminating.*")
@@ -160,7 +158,6 @@ def main():
                     test.write(f"{n};{support};{value};\n")
             else:
                 test.write(f";{support};{value};\n")
-            print(value)
             subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', '0'])
             subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '0'])
         test.write(";;;\n")
