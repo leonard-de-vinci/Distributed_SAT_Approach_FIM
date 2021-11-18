@@ -16,3 +16,4 @@ code/slave/core/kafka.log
 dockerfile
 data/France_tripAdvisorSAT.dat
 code/parallelItemsets-Imen/core/models.txt
+tests/tests-retail-distrib.csv tests/tests-retail-parallel.csv
