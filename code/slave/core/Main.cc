@@ -637,14 +637,14 @@ int main(int argc, char** argv)
 		int index = 0;
 
 		for(int i = 0; i < (int) (coop.models.size() / max_docs) + 1; i++){
-			if(coop.models.size() - i < max_docs)
-				arr_size = (size_t) (coop.models.size() - i);
+			if(coop.models.size() - index < max_docs)
+				arr_size = (size_t) (coop.models.size() - index);
 			else
 				arr_size = (size_t) max_docs;
 									
 			index += (int) arr_size;
 
-			for(int j = i * max_docs; j < index; j++){
+			for(int j = i * max_docs; j < index; j++){ //problème ici
 				document = bson_new();
 				bson_oid_init(&oid, NULL);
 				BSON_APPEND_OID (document, "_id", &oid);
