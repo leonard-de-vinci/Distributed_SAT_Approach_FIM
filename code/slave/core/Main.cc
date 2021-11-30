@@ -630,28 +630,45 @@ int main(int argc, char** argv)
 
 		database = mongoc_client_get_database(client, "solvers");
 		collection = mongoc_client_get_collection(client, "solvers", "models");
-		bson_t *documents[coop.models.size()];
-		
-		for(int i = 0; i < coop.models.size(); i++){
-            document = bson_new();
-            bson_oid_init(&oid, NULL);
-            BSON_APPEND_OID (document, "_id", &oid);
-            
-            sprintf(temp, "model");
-            BSON_APPEND_ARRAY_BEGIN(document, temp, &child2);
-            for(uint32_t j = 0; (int) j < coop.models[i].size(); j++){
-                sprintf(temp, "%d", coop.models[i][j]);
-                keylen = bson_uint32_to_string(i, &key, temp, sizeof(temp));
-                bson_append_int32(&child2, key, -1, coop.models[i][j]);
-            }
-            bson_append_array_end(document, &child2);
-			documents[i] = document;
-        }
 
-		if (!mongoc_collection_insert_many(collection, (const bson_t**) documents, (size_t) coop.models.size(), NULL, NULL, &error)){
-            fprintf (stderr, "%s\n", error.message);
-            sent = false;
-        }
+		int max_docs = 100000;
+		bson_t *documents[max_docs];
+		size_t arr_size = 0;
+		int index = 0;
+
+		for(int i = 0; i < (int) (coop.models.size() / max_docs) + 1; i++){
+			if(coop.models.size() - i < max_docs)
+				arr_size = (size_t) (coop.models.size() - i);
+			else
+				arr_size = (size_t) max_docs;
+									
+			index += (int) arr_size;
+
+			for(int j = i * max_docs; j < index; j++){
+				document = bson_new();
+				bson_oid_init(&oid, NULL);
+				BSON_APPEND_OID (document, "_id", &oid);
+
+				sprintf(temp, "model");
+				BSON_APPEND_ARRAY_BEGIN(document, temp, &child2);
+				for(uint32_t k = 0; (int) k < coop.models[j].size(); k++){
+					sprintf(temp, "%d", coop.models[j][k]);
+					keylen = bson_uint32_to_string(j, &key, temp, sizeof(temp));
+					bson_append_int32(&child2, key, -1, coop.models[j][k]);
+				}
+				bson_append_array_end(document, &child2);
+				documents[j - (i * max_docs)] = document;
+			}
+
+			if (!mongoc_collection_insert_many(collection, (const bson_t**) documents, arr_size, NULL, NULL, &error)){
+				fprintf (stderr, "%s\n", error.message);
+				sent = false;
+			}
+
+			for(int j = 0; j < max_docs; j++){
+				documents[j] = NULL;
+			}
+		}
 
 		bson_destroy(document);
 
