@@ -145,8 +145,6 @@ def test_parallel(minSupport, dataset):
             value = str(value.communicate()).split("'")
             r = re.compile("time elapsed:.*")
             value = list(filter(r.match, value))[0].split("\\n")[0]
-            print(i)
-            print(results)
             value = value.split(" ")[2]
             results[i].append(float(value))
             subprocess.run(['kubectl', 'scale', 'deployment', 'parallel', '--replicas', '0'])
@@ -199,7 +197,7 @@ def test_distrib(minSupport_init, minSupport, dataset):
                 r = re.compile(".*Running.*")
                 status = list(filter(r.match, status))
 
-            subprocess.run(['sleep', '3'])
+            subprocess.run(['sleep', '5'])
 
             subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', f'{n}'])
             
@@ -245,8 +243,8 @@ def main():
 
     for i, support in enumerate(minSupport):
         test.write(f"{support};")
-        for j, n in enumerate(nSolvers):
-            test.write(f"{results_distrib[i][j]};{results_para[i][j]};")
+        for j in range(len(nSolvers)):
+            test.write(f"{results_distrib[j][i]};{results_para[j][i]};")
         if i == 0:
             test.write(f"{send_time}")
         test.write("\n")
