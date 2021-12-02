@@ -8,6 +8,8 @@ python3 tests.py France_tripAdvisorSAT 20000 5000 4000 3000 2000 1000 500
 python3 tests.py France_tripAdvisorSAT_area2 80000 25000 20000 15000 10000 5000 1000
 python3 tests.py France_tripAdvisorSAT_area3 80000 30000 20000 10000 5000 1000 500
 python3 tests.py France_tripAdvisorSAT_area4 80000 20000 15000 10000 5000 1000 500
+python3 tests.py France_tripAdvisorSAT_area5 80000 20000 15000 10000 5000 1000 500
 python3 tests.py HF_tripAdvisorSAT_0 100 40 30 20 10
 python3 tests.py HF_tripAdvisorSAT_area3 100 20 15 10 5
 python3 tests.py HF_tripAdvisorSAT_area4 100 40 30 20 10
+python3 tests.py HF_tripAdvisorSAT_area5 100 40 30 20 10
