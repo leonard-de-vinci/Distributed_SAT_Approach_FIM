@@ -7,8 +7,7 @@ import os
 import re
 import sys
 
-#nSolvers = [1, 2, 4, 8, 10, 12, 16, 20, 24]
-nSolvers = [1, 2]
+nSolvers = [1, 4, 8, 16, 24]
 
 def getMinSupport():
     n = int(input("Number of minSupport: "))
@@ -19,7 +18,9 @@ def getMinSupport():
 
 def init(dataset, minSupport):
     send_time = ""
-    subprocess.run(['kubectl', 'scale', 'deployment', '--all', '--replicas', '0'])
+    subprocess.run(['kubectl', 'scale', 'deployment', 'schemaregistry', '--replicas', '0'])
+    subprocess.run(['kubectl', 'scale', 'deployment', 'broker', '--replicas', '0'])
+    subprocess.run(['kubectl', 'scale', 'deployment', 'zookeeper', '--replicas', '0'])
     subprocess.run(['kubectl', 'scale', 'deployment', 'zookeeper', '--replicas', '1'])
     subprocess.run(['kubectl', 'scale', 'deployment', 'broker', '--replicas', '1'])
     subprocess.run(['kubectl', 'scale', 'deployment', 'schemaregistry', '--replicas', '1'])
@@ -161,7 +162,6 @@ def main():
                 test.write(f";{support};{value};\n")
             subprocess.run(['kubectl', 'scale', 'deployment', 'slave', '--replicas', '0'])
             subprocess.run(['kubectl', 'scale', 'deployment', 'master', '--replicas', '0'])
-        test.write(";;;\n")
         test.close()
 
 if __name__ == '__main__':
