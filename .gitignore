@@ -17,3 +17,5 @@ dockerfile
 code/parallelItemsets-Imen/core/models.txt
 tests/tests-retail-distrib.csv
 tests/tests-retail-parallel.csv
+code/Dataeval/.vscode/
+code/parallelItemsets-Imen/.vscode/
