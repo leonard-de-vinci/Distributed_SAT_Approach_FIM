@@ -5,7 +5,7 @@ Let's start by installing all necessary softwares.
 - First you will need to install docker (depending on your exploitation system)
 https://docs.docker.com/desktop/install/windows-install/
 https://docs.docker.com/desktop/install/linux-install/
-- Next you will need the docker-compose plugin
+- Next you will need the docker-compose plugin (if you installed docker desktop you can skip this step as it is already included)
 https://docs.docker.com/compose/install/
 - Clone the repository, if you're using git you can use the following command
 ```git clone https://github.com/leonard-de-vinci/Distributed_SAT_Approach_FIM ```
