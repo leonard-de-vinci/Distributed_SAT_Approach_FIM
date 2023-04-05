@@ -65,7 +65,7 @@ docker start -i name_or_id_of_your_container
 # For example for the master :
 docker start -i master
 ```
-- When you're done with your tests don't forget to shut down your containers and to go back to the dockefiles file and do
+- When you're done with your tests don't forget to shut down your containers and to go back to the dockerfiles file and do
 ```sh
 docker-compose down
 ```
