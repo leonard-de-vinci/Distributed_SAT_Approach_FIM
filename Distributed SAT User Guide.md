@@ -5,7 +5,7 @@ Let's start by installing all necessary softwares.
 - First you will need to install docker (depending on your exploitation system)
 https://docs.docker.com/desktop/install/windows-install/
 https://docs.docker.com/desktop/install/linux-install/
-- Next you will need the docker-compose plugin (if you installed docker desktop you can skip this step as it is already included)
+- Next you will need the docker-compose plugin
 https://docs.docker.com/compose/install/
 - Clone the repository, if you're using git you can use the following command
 ```git clone https://github.com/leonard-de-vinci/Distributed_SAT_Approach_FIM ```
@@ -24,6 +24,9 @@ In the _dockerfiles_ file, in the dockerfile\_master,dockerfile\_slave and docke
 It should look like something like this :
 WORKDIR /Users/Flexiboy/Desktop/Projects/Distributed_SAT_Approach_FIM/
 And you need to replace it with the path where you cloned the repository.
+
+Additionnaly if you want to compile the image of the slave and the master separately (like described further down) you need to replace the mongo adress by localhost. From ```MONGOADDR=mongodb``` to ```MONGOADDR=localhost```.
+Or you can leave it and uncomment in the docker-compose.yml file the part for the images of the slave and the master.
 
 If everything went correctly you should be done with the installation part.
 
